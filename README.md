@@ -2,9 +2,8 @@
 ###    DevLog's
                                                         
 
-    ### Version 1.7.0 released!
-    What's new?<br>
-    >* New rocket<br>
-    >* Rocket and meteirts animation added<br>
-    >* New sound added<br>
-    >* Rocket physics changed<br>
+    Version 1.7.0 released! What's new?
+    >* New rocket
+    >* Rocket and meteirts animation added
+    >* New sound added
+    >* Rocket physics changed
