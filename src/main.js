@@ -1,0 +1,488 @@
+/** @type {import("../typings/phaser")} */
+
+//Consts & variables
+const MET_NUMBER = 4,
+    WIDTH = 1280,
+    HEIGHT = 720,
+    START_X = WIDTH / 2,
+    START_Y = HEIGHT / 2,
+    ROTATION_FIX = Math.PI / 2,
+    BLOCK_SPEED = 2,
+    VERSION = '1.7.a.0',
+    ANGLE_CHANGING_SPEED = 2;
+
+let game,
+    rocket,
+    rocketLogo,
+    rocketSet = {
+        rotationSpeed: 180,
+        acceleration: 200,
+        maxSpeed: 250,
+        drag: 25,
+        gravity: 100
+    },
+    score = 0,
+    textConfig = {
+        fontSize: 72,
+        fontFamily: 'VGAfontUpdate11',
+        align: 'center'
+    },
+    logoAngle = 0,
+    menuMusic,
+    gameMusic,
+    currentAudio = 0,
+    bg,
+    mets = [],
+    localStorageName = 'jarisBestScore',
+    sessionStorageName = 'isNewGame',
+    texture1Count = 0,
+    texture2Count = 0,
+    currentNumber = 0,
+    scoreText,
+    bootText,
+    rocketSound;
+
+
+window.onload = function() {
+    let config = {
+        type: Phaser.AUTO,
+        width: WIDTH,
+        height: HEIGHT,
+        pixelArt: true,
+        physics: {
+            default: 'arcade',
+            arcade: {
+                gravity: { y: rocketSet.gravity },
+                debug: false
+            }
+        },
+        audio: { disableWebAudio: true },
+        scene: [bootScene, startGameScene, gameScene, endGameScene ]
+    }
+    game = new Phaser.Game(config);
+    window.focus();
+}
+
+/**** Scenes set-up ****/
+class bootScene extends Phaser.Scene {
+    constructor() {
+        super('bootScene');
+    }
+
+    preload() {
+        if (sessionStorage.getItem(sessionStorageName) === null) {
+            sessionStorage.setItem(sessionStorageName, 'true');
+        }
+        /****   Make preloading scene if need  ****/
+        if (sessionStorage.getItem(sessionStorageName) == 'true') {
+            let progressBar = this.add.graphics(),
+                progressBox = this.add.graphics();
+            progressBox.fillStyle(0x222222, 0.8);
+            progressBox.fillRect(240, 270, 320, 50);
+
+            let textStyle = {
+                font: '20px monospace',
+                fill: '#fff',
+                align: 'center'
+            }
+
+            let loadingText = this.make.text({
+                x: START_X,
+                y: START_Y - 25,
+                text: 'Loading...',
+                textStyle
+            });
+            loadingText.setOrigin(0.5, 0.5);
+
+            let percentText = this.make.text({
+                x: START_X,
+                y: START_Y,
+                text: '0%',
+                textStyle
+            });
+            percentText.setOrigin(0.5, 0.5);
+
+            let assetText = this.make.text({
+                x: START_X,
+                y: START_Y + 25,
+                text: '',
+                textStyle
+            });
+            assetText.setOrigin(0.5, 0.5);
+
+            this.load.on('progress', function (value) {
+                percentText.setText(parseInt(value * 100) + '%');
+                progressBar.clear();
+                progressBar.fillStyle(0xffffff, 1);
+                progressBar.fillRect(250, 280, 300 * value, 30);
+            });
+
+            this.load.on('fileprogress', function (file) {
+                assetText.setText('Loading asset: ' + file.key);
+            });
+
+            this.load.on('complete', function () {
+                progressBar.destroy();
+                progressBox.destroy();
+                loadingText.destroy();
+                percentText.destroy();
+                assetText.destroy();
+            });
+        }
+
+        /****   Loading assets   ****/
+        //Images preload
+        this.load.image('preview', '../assets/img/preview.jpg');
+        this.load.image('kvantumLogo', '../assets/img/kvantumLogo.png');
+        this.load.image('githubLogo', '../assets/img/githubLogo.png')
+        this.load.image('startButton', '../assets/img/startButton.png');
+        this.load.image('background', '../assets/img/background.png');
+        this.load.image('meteorite1', '../assets/img/meteorite1.png');
+        this.load.image('meteorite2', '../assets/img/meteorite2.png');
+        this.load.image('newGameButton', '../assets/img/newGameButton.png');
+        this.load.image('engineOff', '../assets/img/rocket/engineOff.png');
+        this.load.image('engineOn', '../assets/img/rocket/engineOn.png');
+        this.load.image('leftRotating', '../assets/img/rocket/leftRotating.png');
+        this.load.image('leftUpRotating', '../assets/img/rocket/leftUpRotating.png');
+        this.load.image('rightRotating', '../assets/img/rocket/rightRotating.png');
+        this.load.image('rightUpRotating', '../assets/img/rocket/rightUpRotating.png');
+        this.load.image('rotating', '../assets/img/rocket/rotating.png');
+
+        //Audio preload
+        this.load.audio('startGameSceneMusic', [
+            '../assets/audio/startGameSceneMusic.ogg',
+            '../assets/audio/startGameSceneMusic.mp3'
+        ]);
+        this.load.audio('gameSceneMusic', [
+            '../assets/audio/gameSceneMusic.ogg',
+            '../assets/audio/gameSceneMusic.mp3'
+        ]);
+        this.load.audio('boom', [
+            '../assets/audio/boom.ogg',
+            '../assets/audio/boom.mp3'
+        ]);
+        this.load.audio('rocketSound', [
+            '../assets/audio/rocketSound.ogg',
+            '../assets/audio/rocketSound.mp3'
+        ]);
+    }
+
+    create() {
+        if (sessionStorage.getItem(sessionStorageName) !== 'true') {
+            this.scene.start('gameScene');
+        }
+        sessionStorage.setItem(sessionStorageName, 'true');
+
+        let preview = this.add.sprite(START_X, START_Y, 'preview');
+        preview.setInteractive();
+        preview.on('pointerdown', function() {
+            this.scene.start('startGameScene');
+        }, this);
+
+        bootText = this.add.text(START_X, START_Y, 'Tap anywhere to start', textConfig).setOrigin(0.5, 0.5);
+
+        let isTextBecomingVisible = false;
+        setInterval(function () {
+            if (!isTextBecomingVisible) {
+                bootText.alpha -= 0.01;
+                if (bootText.alpha === 0) { isTextBecomingVisible = true; }
+            } else {
+                bootText.alpha += 0.01;
+                if (bootText.alpha === 1) { isTextBecomingVisible = false; }
+            }
+        }, 10);
+    }
+}
+
+
+class startGameScene extends Phaser.Scene {
+    constructor() {
+        super("startGameScene");
+    }
+
+    create() {
+        menuMusic = this.sound.add('startGameSceneMusic', { loop: true });
+        menuMusic.play();
+
+        this.add.image(START_X, START_Y, 'preview');
+
+        let button = this.add.image(START_X, START_Y + 280, 'startButton').setInteractive();
+        button.setOrigin(0.5, 0.5);
+        button.on('pointerdown', function(pointer) {
+            menuMusic.stop();
+            this.scene.start('gameScene');
+        }, this);
+
+        this.add.image(WIDTH * 0.8, START_Y, 'kvantumLogo').setScale(0.5, 0.5);
+
+        rocketLogo = this.add.sprite(WIDTH * 0.2, START_Y, 'engineOff').setScale(0.5, 0.5);
+
+        let smallTextConfig = {
+                fontSize: 48,
+                fontFamily: 'VGAfontUpdate11',
+                align: 'center'
+        };
+
+        this.add.text(WIDTH - 285, HEIGHT - 75, 'v' + VERSION, {
+            fontSize: 56,
+            fontFamily: 'VGAfontUpdate11',
+            align: 'center',
+            color: '#000000'
+        });
+
+        this.add.text(20, HEIGHT - 75, 'Visit us here ->', {
+            fontSize: 42,
+            fontFamily: 'VGAfontUpdate11',
+            align: 'center',
+            color: '#000000'
+        });
+
+        let githubLogo = this.add.image(START_X - 200, HEIGHT - 60, 'githubLogo');
+        githubLogo.setInteractive();
+        githubLogo.on('pointerdown', function() {
+            window.open("https://github.com/dolbilov/dolbilov.github.io");
+        }, this);
+
+        this.add.text(START_X, START_Y - 290, 'Just alone rocket\nin the space', textConfig).setOrigin(0.5, 0.5);
+        this.add.text(START_X, START_Y - 145, 'Directed by:\nAntipov Dmitriy', smallTextConfig).setOrigin(0.5, 0.5);
+        this.add.text(START_X, START_Y - 35, 'Programmer:\nDolbilov Kirill', smallTextConfig).setOrigin(0.5, 0.5);
+        this.add.text(START_X, START_Y + 105, 'Designers:\nChirkov Anatoliy\nVedin Ilya', smallTextConfig).setOrigin(0.5, 0.5);
+    }
+
+    update() {
+        rocketLogo.setAngle(logoAngle);
+        if (logoAngle < 360) {
+            logoAngle++;
+        } else {
+            logoAngle = 0;
+        }
+    }
+}
+
+
+class gameScene extends Phaser.Scene {
+    constructor() {
+        super("gameScene");
+    }
+
+
+    create() {
+        rocketSound = this.sound.add('rocketSound');
+        rocketSound.setVolume(0);
+        gameMusic = this.sound.add('gameSceneMusic');
+        gameMusic.play({loop: true});
+        gameMusic.setVolume(0.2);
+
+        //this.add.image(START_X, START_Y, 'background');
+        bg = this.add.tileSprite(START_X, START_Y, WIDTH, HEIGHT, 'background');
+
+        rocket = this.physics.add.sprite(START_X, START_Y, 'engineOff').setScale(0.15);
+        rocket.body.bounce.setTo(0.25, 0.25);
+        rocket.body.maxVelocity.setTo(rocketSet.maxSpeed, rocketSet.maxSpeed);
+        rocket.body.drag.setTo(rocketSet.drag, rocketSet.drag);
+        this.cameras.main.startFollow(rocket, false, 0.15, 0.15);
+
+        scoreText = this.add.text(50, 50, score, textConfig);
+        scoreText.setOrigin(0.5, 0.5);
+        scoreText.setScrollFactor(0);
+
+        //Met generate function
+        for (let i = 0; i < MET_NUMBER; i++) {
+            let met = this.add.sprite(0, 0, 'meteorite1');
+            mets.push(met);
+
+            //Generate texture
+            if (Math.random() < 0.5) {
+                met.setTexture('meteorite1');
+                texture1Count++;
+            } else {
+                met.setTexture('meteorite2');
+                texture2Count++;
+            }
+
+            //Change texture if all mets has same textures
+            if (texture1Count === MET_NUMBER) {
+                let b = getRandomInt(0, MET_NUMBER - 1);
+                mets[b].setTexture('meteorite2');
+                texture1Count--;
+                texture2Count++;
+            } else if (texture2Count === MET_NUMBER) {
+                let b = getRandomInt(0, MET_NUMBER - 1);
+                mets[b].setTexture('meteorite1');
+                texture2Count--;
+                texture1Count++;
+            }
+
+            //Generate position
+            let ok, t = 0;
+            do {
+                met.setRandomPosition(0, -HEIGHT, WIDTH, HEIGHT);
+                ok = true;
+                for (let j = 0; j < currentNumber; j++) {
+                    if (Math.abs(met.x - mets[j].x) < 150) { ok = false; t++; }
+                }
+                if (t === 15) { break; }
+            } while (!ok);
+
+            currentNumber++;
+        }
+    }
+
+
+    update() {
+        /****   Mets movement   ****/
+        for (let i = 0; i < MET_NUMBER; i++) {
+            //Crash check
+            if (Phaser.Geom.Intersects.RectangleToRectangle(rocket.getBounds(), mets[i].getBounds())) {
+                gameMusic.stop();
+                this.sound.add('boom').setVolume(0.1).play();
+                this.scene.start('endGameScene');
+            }
+
+            //Mets down movement
+            mets[i].y += BLOCK_SPEED;
+            mets[i].angle += ANGLE_CHANGING_SPEED;
+            if (mets[i].angle === 360) { mets[i].angle = 0; }
+
+            //Redraw if need
+            if (mets[i].y > HEIGHT) {
+                score++;
+                scoreText.setText(score);
+                reDraw(i);
+            }
+        }
+
+        /****   User input processing   ****/
+        let cursors = this.input.keyboard.createCursorKeys();
+        let left = cursors.left.isDown,
+            right = cursors.right.isDown,
+            up = cursors.up.isDown;
+
+        //Left/Right rotate processing
+        if (left) {
+            //if the LEFT key is down
+            rocket.body.angularVelocity = -rocketSet.rotationSpeed;
+        } else if (right) {
+            //if the RIGHT key is down
+            rocket.body.angularVelocity = rocketSet.rotationSpeed;
+        } else {
+            //Stop rotate if LEFT & RIGHT keys is not down
+            rocket.body.angularVelocity = 0;
+        }
+
+        /****   Rocket movement processing   ****/
+        if (up) {
+            //Play music
+            if (!rocketSound.isPlaying) {
+                rocketSound.play({loop: true});
+            }
+            rocketSound.setVolume(0.5);
+
+            //Set acceleration to rocket if UP key is down
+            rocket.body.acceleration.x = Math.cos(rocket.rotation - ROTATION_FIX) * rocketSet.acceleration;
+            rocket.body.acceleration.y = Math.sin(rocket.rotation - ROTATION_FIX) * rocketSet.acceleration;
+        } else {
+            //Set NO acceleration if UP key isn't down
+            rocket.body.acceleration.setTo(0, 0);
+
+            //Stop music
+            rocketSound.setVolume(0);
+        }
+
+        /****   Rocket animation   ****/
+        if (!up) {
+            if (!left & !right) { rocket.setTexture('engineOff'); } //Without pressed keys(up- left- right-)
+            if (left & !right) { rocket.setTexture('leftRotating'); } //Just left rotating(up- left+ right-)
+            if (!left & right) { rocket.setTexture('rightRotating'); } //Just right rotating(up- left- right+)
+        } else {
+            if (!left & !right) { rocket.setTexture('engineOn'); } //Just up(up+ left- right-)
+            if (left & !right) { rocket.setTexture('leftUpRotating'); } //left + up rotating(up+ left+ right-)
+            if (!left & right) { rocket.setTexture('rightUpRotating'); } //right + up rotating(up+ left- right+)
+        }
+
+        /*
+        //Keep rocket in visible area
+        if (rocket.x > WIDTH) { rocket.x = 0; }
+        if (rocket.x < 0) { rocket.x = WIDTH; }
+        */
+    }
+}
+
+
+class endGameScene extends Phaser.Scene {
+    constructor() {
+        super("endGameScene");
+    }
+
+
+    create() {
+        rocketSound.stop();
+        menuMusic = this.sound.add('startGameSceneMusic');
+        menuMusic.play({loop: true});
+
+        this.add.image(0, 0, 'preview').setOrigin(0, 0);
+
+        let newGameButton = this.add.sprite(START_X, START_Y + 275, 'newGameButton');
+        newGameButton.setInteractive();
+        newGameButton.on('pointerdown', function() {
+            sessionStorage.setItem(sessionStorageName, 'false');
+            location.reload();
+        }, this);
+
+        this.add.text(START_X, START_Y - 250, 'Game over :(', textConfig).setOrigin(0.5, 0.5);
+        let bestScore = localStorage.getItem(localStorageName);
+        if (bestScore === null) {
+            bestScore = 0;
+        }
+        let text;
+        if (score > bestScore) {
+            text = 'Congratulations!\nYou have new best score:\n' + score;
+            localStorage.setItem(localStorageName, score);
+        }
+        else {
+            text = 'Your score is ' + score + '\nYour best score is ' + bestScore;
+        }
+        this.add.text(START_X, START_Y - 60, text, textConfig).setOrigin(0.5, 0.5);
+    }
+}
+
+
+/*** EXTRA FUNCTIONS ***/
+function getRandomInt(min, max) {
+    var rand = min - 0.5 + Math.random() * (max - min + 1)
+    rand = Math.round(rand);
+    return rand;
+}
+
+function reDraw(i) {
+    //Generate texture
+    if (Math.random() < 0.5) {
+        mets[i].setTexture('meteorite1');
+        texture1Count++;
+    } else {
+        mets[i].setTexture('meteorite2');
+        texture2Count++;
+    }
+
+    //Change texture if all mets has same textures
+    if (texture1Count === MET_NUMBER) {
+        mets[i].setTexture('meteorite2');
+        texture1Count--;
+        texture2Count++;
+    } else if (texture2Count === MET_NUMBER) {
+        mets[i].setTexture('meteorite1');
+        texture2Count--;
+        texture1Count++;
+    }
+
+    //Generate position
+    let ok, t = 0;
+    do {
+        mets[i].setRandomPosition(0, -HEIGHT, WIDTH, HEIGHT);
+        ok = true;
+        for (let j = 0; j < MET_NUMBER; j++) {
+            if ((Math.abs(mets[i].x - mets[j].x) < 150) && (i != j)) { ok = false; t++; }
+        }
+        if (t === 15) { break; }
+    } while (!ok);
+}
