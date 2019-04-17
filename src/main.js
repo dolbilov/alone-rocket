@@ -49,7 +49,6 @@ window.onload = function() {
         type: Phaser.AUTO,
         width: WIDTH,
         height: HEIGHT,
-        pixelArt: true,
         physics: {
             default: 'arcade',
             arcade: {
@@ -446,9 +445,6 @@ class gameScene extends Phaser.Scene {
         if (rocket.x > WIDTH) { rocket.x = 0; }
         if (rocket.x < 0) { rocket.x = WIDTH; }
         */
-        if (rocket.body.velocity.x != 0) {
-            rocket.rotation = Math.atan2(rocket.body.velocity.y, rocket.body.velocity.x);
-        }
     }
 }
 
