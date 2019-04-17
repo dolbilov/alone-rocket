@@ -8,7 +8,7 @@ const MET_NUMBER = 4,
     START_Y = HEIGHT / 2,
     ROTATION_FIX = Math.PI / 2,
     BLOCK_SPEED = 2,
-    VERSION = '1.7.2-a',
+    VERSION = '1.7.4-a',
     ANGLE_CHANGING_SPEED = 2;
 
 let game,
@@ -40,7 +40,8 @@ let game,
     currentNumber = 0,
     scoreText,
     bootText,
-    rocketSound;
+    rocketSound,
+    hardModeText;
 
 
 window.onload = function() {
@@ -75,10 +76,10 @@ class bootScene extends Phaser.Scene {
         }
         /****   Make preloading scene if need  ****/
         if (sessionStorage.getItem(sessionStorageName) == 'true') {
-            let progressBar = this.add.graphics(),
-                progressBox = this.add.graphics();
+            let d = 15;
+            let progressBox = this.add.graphics();
             progressBox.fillStyle(0x222222, 0.8);
-            progressBox.fillRect(240, 270, 320, 50);
+            progressBox.fillRect(START_X - 160, START_Y - 25 - d, 320, 50);
 
             let textStyle = {
                 font: '20px monospace',
@@ -88,7 +89,7 @@ class bootScene extends Phaser.Scene {
 
             let loadingText = this.make.text({
                 x: START_X,
-                y: START_Y - 25,
+                y: START_Y + 30,
                 text: 'Loading...',
                 textStyle
             });
@@ -96,7 +97,7 @@ class bootScene extends Phaser.Scene {
 
             let percentText = this.make.text({
                 x: START_X,
-                y: START_Y,
+                y: START_Y + 55,
                 text: '0%',
                 textStyle
             });
@@ -104,17 +105,19 @@ class bootScene extends Phaser.Scene {
 
             let assetText = this.make.text({
                 x: START_X,
-                y: START_Y + 25,
+                y: START_Y + 80,
                 text: '',
                 textStyle
             });
             assetText.setOrigin(0.5, 0.5);
 
+            let progressBar = this.add.graphics();
+
             this.load.on('progress', function (value) {
                 percentText.setText(parseInt(value * 100) + '%');
                 progressBar.clear();
                 progressBar.fillStyle(0xffffff, 1);
-                progressBar.fillRect(250, 280, 300 * value, 30);
+                progressBar.fillRect(START_X - 150, START_Y - 15 - d, 300 * value, 30);
             });
 
             this.load.on('fileprogress', function (file) {
@@ -181,7 +184,6 @@ class bootScene extends Phaser.Scene {
         let preview = this.add.sprite(START_X, START_Y, 'preview');
         preview.setInteractive();
         preview.on('pointerdown', function() {
-      
             this.scene.start('startGameScene');
         }, this);
 
@@ -206,6 +208,7 @@ class startGameScene extends Phaser.Scene {
         super("startGameScene");
     }
 
+
     create() {
         menuMusic = this.sound.add('startGameSceneMusic', { loop: true });
         menuMusic.play();
@@ -219,12 +222,12 @@ class startGameScene extends Phaser.Scene {
             this.scene.start('gameScene');
         }, this);
 
-        this.add.image(WIDTH * 0.8, START_Y, 'kvantumLogo').setScale(0.5, 0.5);
+        this.add.image(WIDTH * 0.9, START_Y, 'kvantumLogo').setScale(0.5, 0.5);
 
-        rocketLogo = this.add.sprite(WIDTH * 0.2, START_Y, 'engineOff').setScale(0.5, 0.5);
+        rocketLogo = this.add.sprite(WIDTH * 0.1, START_Y, 'engineOff').setScale(0.5, 0.5);
 
         let smallTextConfig = {
-                fontSize: 48,
+                fontSize: 42,
                 fontFamily: 'VGAfontUpdate11',
                 align: 'center'
         };
@@ -236,23 +239,50 @@ class startGameScene extends Phaser.Scene {
             color: '#000000'
         });
 
-        this.add.text(20, HEIGHT - 75, 'Visit us here ->', {
+        this.add.text(20, HEIGHT - 115, 'Visit us here ->', {
             fontSize: 42,
             fontFamily: 'VGAfontUpdate11',
             align: 'center',
             color: '#000000'
         });
 
-        let githubLogo = this.add.image(START_X - 200, HEIGHT - 60, 'githubLogo');
+        let githubLogo = this.add.image(START_X - 200, HEIGHT - 100, 'githubLogo');
         githubLogo.setInteractive();
         githubLogo.on('pointerdown', function() {
             window.open("https://github.com/dolbilov/dolbilov.github.io");
         }, this);
 
+        this.add.text(140, HEIGHT - 50, 'Hard mode:', {
+            fontSize: 42,
+            fontFamily: 'VGAfontUpdate11',
+            align: 'center',
+            color: '#000000'
+        }).setOrigin(0.5, 0.5);
+
+        hardModeText = this.add.text(360, HEIGHT - 50, 'Disable', {
+            fontSize: 42,
+            fontFamily: 'VGAfontUpdate11',
+            align: 'center',
+        }).setOrigin(0.5, 0.5);
+        hardModeText.setTint(0xff3300);
+        hardModeText.setInteractive();
+        hardModeText.on('pointerdown', function() {
+            if (hardModeText.text == 'Disable') {
+                hardModeText.text = 'Enable';
+                hardModeText.clearTint();
+                hardModeText.setTint(0x009900);
+            } else {
+                hardModeText.text = 'Disable';
+                hardModeText.setTint(0xff3300);
+            }
+        });
+
+
         this.add.text(START_X, START_Y - 290, 'Just alone rocket\nin the space', textConfig).setOrigin(0.5, 0.5);
-        this.add.text(START_X, START_Y - 145, 'Directed by:\nAntipov Dmitriy', smallTextConfig).setOrigin(0.5, 0.5);
-        this.add.text(START_X, START_Y - 35, 'Programmer:\nDolbilov Kirill', smallTextConfig).setOrigin(0.5, 0.5);
-        this.add.text(START_X, START_Y + 105, 'Designers:\nChirkov Anatoliy\nVedin Ilya', smallTextConfig).setOrigin(0.5, 0.5);
+        this.add.text(START_X - 200, START_Y - 140, 'Directed by:\nAntipov Dmitriy', smallTextConfig).setOrigin(0.5, 0.5);
+        this.add.text(START_X - 200, START_Y - 45, 'Programmer:\nDolbilov Kirill', smallTextConfig).setOrigin(0.5, 0.5);
+        this.add.text(START_X - 200, START_Y + 80, 'Designers:\nChirkov Anatoliy\nVedin Ilya', smallTextConfig).setOrigin(0.5, 0.5);
+        this.add.text(START_X + 220, START_Y - 20, 'Thank you to\nall the testers:\nAleksandr\nGorbachenkov\n\nOleg Chernov\n\nRoman Chernov\n\nDanil Shanin', smallTextConfig).setOrigin(0.5, 0.5);
     }
 
     update() {
@@ -282,7 +312,7 @@ class gameScene extends Phaser.Scene {
         //this.add.image(START_X, START_Y, 'background');
         bg = this.add.tileSprite(START_X, START_Y, WIDTH, HEIGHT, 'background');
 
-        rocket = this.physics.add.sprite(START_X, START_Y, 'engineOff').setScale(0.15);
+        rocket = this.physics.add.sprite(START_X, START_Y, 'engineOff').setScale(0.25);
         rocket.body.bounce.setTo(0.25, 0.25);
         rocket.body.maxVelocity.setTo(rocketSet.maxSpeed, rocketSet.maxSpeed);
         rocket.body.drag.setTo(rocketSet.drag, rocketSet.drag);
@@ -295,6 +325,7 @@ class gameScene extends Phaser.Scene {
         //Met generate function
         for (let i = 0; i < MET_NUMBER; i++) {
             let met = this.add.sprite(0, 0, 'meteorite1');
+            met.angle = getRandomInt(0, 360);
             mets.push(met);
 
             //Generate texture
@@ -346,6 +377,9 @@ class gameScene extends Phaser.Scene {
             }
 
             //Mets down movement
+            if (hardModeText.text == 'Enable') {
+                mets[i].x += 1.5;
+            }
             mets[i].y += BLOCK_SPEED;
             mets[i].angle += ANGLE_CHANGING_SPEED;
             if (mets[i].angle === 360) { mets[i].angle = 0; }
@@ -454,13 +488,15 @@ class endGameScene extends Phaser.Scene {
 }
 
 
-/*** EXTRA FUNCTIONS ***/
+// EXTRA FUNCTIONS \\
+/** Get random integer in [min;max] */
 function getRandomInt(min, max) {
     var rand = min - 0.5 + Math.random() * (max - min + 1)
     rand = Math.round(rand);
     return rand;
 }
 
+/** Redraw meteorit  */
 function reDraw(i) {
     //Generate texture
     if (Math.random() < 0.5) {
