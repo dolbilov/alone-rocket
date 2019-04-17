@@ -181,11 +181,8 @@ class bootScene extends Phaser.Scene {
         let preview = this.add.sprite(START_X, START_Y, 'preview');
         preview.setInteractive();
         preview.on('pointerdown', function() {
-            let fullscreen = this.sys.game.device.fullscreen,
-                canvas = this.sys.game.canvas;
-            if (!fullscreen.available) { return; console.log('not support'); }
-            canvas[fullscreen.request]();
-            //this.scene.start('startGameScene');
+      
+            this.scene.start('startGameScene');
         }, this);
 
         bootText = this.add.text(START_X, START_Y, 'Tap anywhere to start', textConfig).setOrigin(0.5, 0.5);
