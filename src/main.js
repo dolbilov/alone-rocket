@@ -398,7 +398,8 @@ class gameScene extends Phaser.Scene {
             right = cursors.right.isDown,
             up = cursors.up.isDown;
 
-        //Left/Right rotate processing
+        // Rocket movement processing \\
+            //Left/Right rotate processing
         if (left) {
             //if the LEFT key is down
             rocket.body.angularVelocity = -rocketSet.rotationSpeed;
@@ -410,7 +411,6 @@ class gameScene extends Phaser.Scene {
             rocket.body.angularVelocity = 0;
         }
 
-        /****   Rocket movement processing   ****/
         if (up) {
             //Play music
             if (!rocketSound.isPlaying) {
@@ -446,6 +446,9 @@ class gameScene extends Phaser.Scene {
         if (rocket.x > WIDTH) { rocket.x = 0; }
         if (rocket.x < 0) { rocket.x = WIDTH; }
         */
+        if (rocket.body.velocity.x != 0) {
+            rocket.rotation = Math.atan2(rocket.body.velocity.y, rocket.body.velocity.x);
+        }
     }
 }
 
