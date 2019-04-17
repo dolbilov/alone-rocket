@@ -8,7 +8,7 @@ const MET_NUMBER = 4,
     START_Y = HEIGHT / 2,
     ROTATION_FIX = Math.PI / 2,
     BLOCK_SPEED = 2,
-    VERSION = '1.7.a.0',
+    VERSION = '1.7.2-a',
     ANGLE_CHANGING_SPEED = 2;
 
 let game,
@@ -141,12 +141,17 @@ class bootScene extends Phaser.Scene {
         this.load.image('meteorite2', '../assets/img/meteorite2.png');
         this.load.image('newGameButton', '../assets/img/newGameButton.png');
         this.load.image('engineOff', '../assets/img/rocket/engineOff.png');
-        this.load.image('engineOn', '../assets/img/rocket/engineOn.png');
-        this.load.image('leftRotating', '../assets/img/rocket/leftRotating.png');
-        this.load.image('leftUpRotating', '../assets/img/rocket/leftUpRotating.png');
-        this.load.image('rightRotating', '../assets/img/rocket/rightRotating.png');
-        this.load.image('rightUpRotating', '../assets/img/rocket/rightUpRotating.png');
-        this.load.image('rotating', '../assets/img/rocket/rotating.png');
+        this.load.image('engineOn_1', '../assets/img/rocket/engineOn_1.png');
+        this.load.image('engineOn_2', '../assets/img/rocket/engineOn_2.png');
+        this.load.image('leftRotating_1', '../assets/img/rocket/leftRotating_1.png');
+        this.load.image('leftRotating_2', '../assets/img/rocket/leftRotating_2.png');
+        this.load.image('leftUpRotating_1', '../assets/img/rocket/leftUpRotating_1.png');
+        this.load.image('leftUpRotating_2', '../assets/img/rocket/leftUpRotating_2.png');
+        this.load.image('rightRotating_1', '../assets/img/rocket/rightRotating_1.png');
+        this.load.image('rightRotating_2', '../assets/img/rocket/rightRotating_2.png');
+        this.load.image('rightUpRotating_1', '../assets/img/rocket/rightUpRotating_1.png');
+        this.load.image('rightUpRotating_2', '../assets/img/rocket/rightUpRotating_2.png');
+
 
         //Audio preload
         this.load.audio('startGameSceneMusic', [
@@ -176,7 +181,11 @@ class bootScene extends Phaser.Scene {
         let preview = this.add.sprite(START_X, START_Y, 'preview');
         preview.setInteractive();
         preview.on('pointerdown', function() {
-            this.scene.start('startGameScene');
+            let fullscreen = this.sys.game.device.fullscreen,
+                canvas = this.sys.game.canvas;
+            if (!fullscreen.available) { return; console.log('not support'); }
+            canvas[fullscreen.request]();
+            //this.scene.start('startGameScene');
         }, this);
 
         bootText = this.add.text(START_X, START_Y, 'Tap anywhere to start', textConfig).setOrigin(0.5, 0.5);
@@ -390,14 +399,15 @@ class gameScene extends Phaser.Scene {
         }
 
         /****   Rocket animation   ****/
+        let a = getRandomInt(1, 2);
         if (!up) {
             if (!left & !right) { rocket.setTexture('engineOff'); } //Without pressed keys(up- left- right-)
-            if (left & !right) { rocket.setTexture('leftRotating'); } //Just left rotating(up- left+ right-)
-            if (!left & right) { rocket.setTexture('rightRotating'); } //Just right rotating(up- left- right+)
+            if (left & !right) { rocket.setTexture('leftRotating_'+a); } //Just left rotating(up- left+ right-)
+            if (!left & right) { rocket.setTexture('rightRotating_'+a); } //Just right rotating(up- left- right+)
         } else {
-            if (!left & !right) { rocket.setTexture('engineOn'); } //Just up(up+ left- right-)
-            if (left & !right) { rocket.setTexture('leftUpRotating'); } //left + up rotating(up+ left+ right-)
-            if (!left & right) { rocket.setTexture('rightUpRotating'); } //right + up rotating(up+ left- right+)
+            if (!left & !right) { rocket.setTexture('engineOn_'+a); } //Just up(up+ left- right-)
+            if (left & !right) { rocket.setTexture('leftUpRotating_'+a); } //left + up rotating(up+ left+ right-)
+            if (!left & right) { rocket.setTexture('rightUpRotating_'+a); } //right + up rotating(up+ left- right+)
         }
 
         /*
