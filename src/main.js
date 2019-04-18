@@ -8,7 +8,7 @@ const MET_NUMBER = 4,
     START_Y = HEIGHT / 2,
     ROTATION_FIX = Math.PI / 2,
     BLOCK_SPEED = 2,
-    VERSION = '1.7.4-a',
+    VERSION = '1.7.5-a',
     ANGLE_CHANGING_SPEED = 2;
 
 let game,
@@ -49,6 +49,7 @@ window.onload = function() {
         type: Phaser.AUTO,
         width: WIDTH,
         height: HEIGHT,
+        pixelArt: true,
         physics: {
             default: 'arcade',
             arcade: {
@@ -73,7 +74,7 @@ class bootScene extends Phaser.Scene {
         if (sessionStorage.getItem(sessionStorageName) === null) {
             sessionStorage.setItem(sessionStorageName, 'true');
         }
-        /****   Make preloading scene if need  ****/
+        // Make preloading scene \\
         if (sessionStorage.getItem(sessionStorageName) == 'true') {
             let d = 15;
             let progressBox = this.add.graphics();
@@ -257,21 +258,38 @@ class startGameScene extends Phaser.Scene {
             align: 'center',
             color: '#000000'
         }).setOrigin(0.5, 0.5);
-
-        hardModeText = this.add.text(360, HEIGHT - 50, 'Disable', {
+        if (sessionStorage.getItem('isHardModeEnable') === null) {
+            sessionStorage.setItem('isHardModeEnable', 'false');
+        }
+        //let text2 = sessionStorage.getItem('isHardModeEnable') == true ? 'Enable' : 'Disable';
+        let text2 = '';
+        if (sessionStorage.getItem('isHardModeEnable') == 'true') {
+            text2 = 'Enable';
+        } else {
+            text2 = 'Disable';
+        }
+        hardModeText = this.add.text(360, HEIGHT - 50, text2, {
             fontSize: 42,
             fontFamily: 'VGAfontUpdate11',
             align: 'center',
         }).setOrigin(0.5, 0.5);
-        hardModeText.setTint(0xff3300);
+        if (sessionStorage.getItem('isHardModeEnable') == 'false') {
+            hardModeText.setTint(0xff3300);
+        } else {
+            hardModeText.setTint(0x009900);
+        }
         hardModeText.setInteractive();
         hardModeText.on('pointerdown', function() {
-            if (hardModeText.text == 'Disable') {
+            console.log(sessionStorage.getItem('isHardModeEnable'));
+            if (sessionStorage.getItem('isHardModeEnable') == 'false') {
                 hardModeText.text = 'Enable';
+                sessionStorage.setItem('isHardModeEnable', 'true');
                 hardModeText.clearTint();
                 hardModeText.setTint(0x009900);
             } else {
                 hardModeText.text = 'Disable';
+                sessionStorage.setItem('isHardModeEnable', 'false');
+                hardModeText.clearTint();
                 hardModeText.setTint(0xff3300);
             }
         });
@@ -376,8 +394,12 @@ class gameScene extends Phaser.Scene {
             }
 
             //Mets down movement
-            if (hardModeText.text == 'Enable') {
-                mets[i].x += 1.5;
+            if (sessionStorage.getItem('isHardModeEnable') == 'true') {
+                if (i % 2 == 0) {
+                    mets[i].x += 1;
+                } else {
+                    mets[i].x -= 1;
+                }
             }
             mets[i].y += BLOCK_SPEED;
             mets[i].angle += ANGLE_CHANGING_SPEED;
@@ -411,12 +433,6 @@ class gameScene extends Phaser.Scene {
         }
 
         if (up) {
-            //Play music
-            if (!rocketSound.isPlaying) {
-                rocketSound.play({loop: true});
-            }
-            rocketSound.setVolume(0.5);
-
             //Set acceleration to rocket if UP key is down
             rocket.body.acceleration.x = Math.cos(rocket.rotation - ROTATION_FIX) * rocketSet.acceleration;
             rocket.body.acceleration.y = Math.sin(rocket.rotation - ROTATION_FIX) * rocketSet.acceleration;
@@ -432,9 +448,23 @@ class gameScene extends Phaser.Scene {
         let a = getRandomInt(1, 2);
         if (!up) {
             if (!left & !right) { rocket.setTexture('engineOff'); } //Without pressed keys(up- left- right-)
-            if (left & !right) { rocket.setTexture('leftRotating_'+a); } //Just left rotating(up- left+ right-)
-            if (!left & right) { rocket.setTexture('rightRotating_'+a); } //Just right rotating(up- left- right+)
+            else {
+                //Play music
+                if (!rocketSound.isPlaying) {
+                    rocketSound.play({ loop: true });
+                }
+                rocketSound.setVolume(0.5);
+
+                if (left & !right) { rocket.setTexture('leftRotating_' + a); } //Just left rotating(up- left+ right-)
+                if (!left & right) { rocket.setTexture('rightRotating_' + a); } //Just right rotating(up- left- right+)
+            }
         } else {
+            //Play music
+            if (!rocketSound.isPlaying) {
+                rocketSound.play({ loop: true });
+            }
+            rocketSound.setVolume(0.5);
+
             if (!left & !right) { rocket.setTexture('engineOn_'+a); } //Just up(up+ left- right-)
             if (left & !right) { rocket.setTexture('leftUpRotating_'+a); } //left + up rotating(up+ left+ right-)
             if (!left & right) { rocket.setTexture('rightUpRotating_'+a); } //right + up rotating(up+ left- right+)
@@ -444,7 +474,9 @@ class gameScene extends Phaser.Scene {
         //Keep rocket in visible area
         if (rocket.x > WIDTH) { rocket.x = 0; }
         if (rocket.x < 0) { rocket.x = WIDTH; }
-        */
+        if (rocket.body.velocity.x != 0) {
+            rocket.rotation = Math.atan2(rocket.body.velocity.y, rocket.body.velocity.x);
+        }*/
     }
 }
 
