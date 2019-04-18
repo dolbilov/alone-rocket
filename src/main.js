@@ -30,7 +30,6 @@ let game,
     logoAngle = 0,
     menuMusic,
     gameMusic,
-    currentAudio = 0,
     bg,
     mets = [],
     localStorageName = 'jarisBestScore',
@@ -49,7 +48,6 @@ window.onload = function() {
         type: Phaser.AUTO,
         width: WIDTH,
         height: HEIGHT,
-        pixelArt: true,
         physics: {
             default: 'arcade',
             arcade: {
@@ -280,7 +278,6 @@ class startGameScene extends Phaser.Scene {
         }
         hardModeText.setInteractive();
         hardModeText.on('pointerdown', function() {
-            console.log(sessionStorage.getItem('isHardModeEnable'));
             if (sessionStorage.getItem('isHardModeEnable') == 'false') {
                 hardModeText.text = 'Enable';
                 sessionStorage.setItem('isHardModeEnable', 'true');
@@ -326,8 +323,8 @@ class gameScene extends Phaser.Scene {
         gameMusic.play({loop: true});
         gameMusic.setVolume(0.2);
 
-        //this.add.image(START_X, START_Y, 'background');
-        bg = this.add.tileSprite(START_X, START_Y, WIDTH, HEIGHT, 'background');
+        //bg = this.add.image(START_X, START_Y, 'background');
+        bg = this.add.tileSprite(START_X, START_Y, 2560, 1440, 'background');
 
         rocket = this.physics.add.sprite(START_X, START_Y, 'engineOff').setScale(0.25);
         rocket.body.bounce.setTo(0.25, 0.25);
@@ -342,6 +339,10 @@ class gameScene extends Phaser.Scene {
         //Met generate function
         for (let i = 0; i < MET_NUMBER; i++) {
             let met = this.add.sprite(0, 0, 'meteorite1');
+            this.physics.add.existing(met);
+            met.body.setGravityY(0);
+            met.body.setMaxVelocity(BLOCK_SPEED);
+            //met.body.maxVelocity = BLOCK_SPEED;
             met.angle = getRandomInt(0, 360);
             mets.push(met);
 
@@ -380,19 +381,20 @@ class gameScene extends Phaser.Scene {
 
             currentNumber++;
         }
+
+        //Crash check
+        this.physics.add.overlap(rocket, mets, function () {
+            console.log('ban');
+            gameMusic.stop();
+            this.sound.add('boom').setVolume(0.1).play();
+            this.scene.start('endGameScene');
+        }, null, this);
     }
 
 
     update() {
         /****   Mets movement   ****/
         for (let i = 0; i < MET_NUMBER; i++) {
-            //Crash check
-            if (Phaser.Geom.Intersects.RectangleToRectangle(rocket.getBounds(), mets[i].getBounds())) {
-                gameMusic.stop();
-                this.sound.add('boom').setVolume(0.1).play();
-                this.scene.start('endGameScene');
-            }
-
             //Mets down movement
             if (sessionStorage.getItem('isHardModeEnable') == 'true') {
                 if (i % 2 == 0) {
@@ -420,13 +422,16 @@ class gameScene extends Phaser.Scene {
             up = cursors.up.isDown;
 
         // Rocket movement processing \\
-            //Left/Right rotate processing
-        if (left) {
-            //if the LEFT key is down
-            rocket.body.angularVelocity = -rocketSet.rotationSpeed;
-        } else if (right) {
-            //if the RIGHT key is down
-            rocket.body.angularVelocity = rocketSet.rotationSpeed;
+        //Left/Right rotate processing
+        if (left | right) {
+            rocket.body.acceleration.x = Math.cos(rocket.rotation - ROTATION_FIX) * rocketSet.acceleration / 5;
+            if (left) {
+                //if the LEFT key is down
+                rocket.body.angularVelocity = -rocketSet.rotationSpeed;
+            } else if (right) {
+                //if the RIGHT key is down
+                rocket.body.angularVelocity = rocketSet.rotationSpeed;
+            }
         } else {
             //Stop rotate if LEFT & RIGHT keys is not down
             rocket.body.angularVelocity = 0;
@@ -438,7 +443,9 @@ class gameScene extends Phaser.Scene {
             rocket.body.acceleration.y = Math.sin(rocket.rotation - ROTATION_FIX) * rocketSet.acceleration;
         } else {
             //Set NO acceleration if UP key isn't down
-            rocket.body.acceleration.setTo(0, 0);
+            if (!left & !right) {
+                rocket.body.acceleration.setTo(0, 0);
+            }
 
             //Stop music
             rocketSound.setVolume(0);
