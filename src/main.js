@@ -40,7 +40,8 @@ let game,
     scoreText,
     bootText,
     rocketSound,
-    hardModeText;
+    hardModeText,
+    myCam;
 
 
 window.onload = function() {
@@ -323,14 +324,16 @@ class gameScene extends Phaser.Scene {
         gameMusic.play({loop: true});
         gameMusic.setVolume(0.2);
 
-        //bg = this.add.image(START_X, START_Y, 'background');
-        bg = this.add.tileSprite(START_X, START_Y, 2560, 1440, 'background');
+        bg = this.add.tileSprite(0, 0, 1280,720, 'background');
+        bg.setOrigin(0, 0);
+        bg.setScrollFactor(0);
 
         rocket = this.physics.add.sprite(START_X, START_Y, 'engineOff').setScale(0.25);
         rocket.body.bounce.setTo(0.25, 0.25);
         rocket.body.maxVelocity.setTo(rocketSet.maxSpeed, rocketSet.maxSpeed);
         rocket.body.drag.setTo(rocketSet.drag, rocketSet.drag);
-        this.cameras.main.startFollow(rocket, false, 0.15, 0.15);
+        myCam = this.cameras.main.startFollow(rocket);
+
 
         scoreText = this.add.text(50, 50, score, textConfig);
         scoreText.setOrigin(0.5, 0.5);
@@ -384,7 +387,6 @@ class gameScene extends Phaser.Scene {
 
         //Crash check
         this.physics.add.overlap(rocket, mets, function () {
-            console.log('ban');
             gameMusic.stop();
             this.sound.add('boom').setVolume(0.1).play();
             this.scene.start('endGameScene');
@@ -393,6 +395,10 @@ class gameScene extends Phaser.Scene {
 
 
     update() {
+        bg.tilePositionX = myCam.scrollX * 0.6;
+        bg.tilePositionY = myCam.scrollY * 0.6;
+
+
         /****   Mets movement   ****/
         for (let i = 0; i < MET_NUMBER; i++) {
             //Mets down movement
