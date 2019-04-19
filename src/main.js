@@ -8,7 +8,7 @@ const MET_NUMBER = 4,
     START_Y = HEIGHT / 2,
     ROTATION_FIX = Math.PI / 2,
     BLOCK_SPEED = 2,
-    VERSION = '1.7.5-a',
+    VERSION = '1.7.6-a',
     ANGLE_CHANGING_SPEED = 2;
 
 let game,
@@ -41,7 +41,8 @@ let game,
     bootText,
     rocketSound,
     hardModeText,
-    myCam;
+    myCam,
+    endGame = false;
 
 
 window.onload = function() {
@@ -133,7 +134,13 @@ class bootScene extends Phaser.Scene {
         }
 
         /****   Loading assets   ****/
-        //Images preload
+        //Spritesheets load
+        this.load.spritesheet('explosion', '../assets/img/explosion.png', {
+            frameWidth: 64,
+            frameHeight: 64,
+            endFrame: 23
+        });
+        //Images load
         this.load.image('preview', '../assets/img/preview.jpg');
         this.load.image('kvantumLogo', '../assets/img/kvantumLogo.png');
         this.load.image('githubLogo', '../assets/img/githubLogo.png')
@@ -155,7 +162,7 @@ class bootScene extends Phaser.Scene {
         this.load.image('rightUpRotating_2', '../assets/img/rocket/rightUpRotating_2.png');
 
 
-        //Audio preload
+        //Audio load
         this.load.audio('startGameSceneMusic', [
             '../assets/audio/startGameSceneMusic.ogg',
             '../assets/audio/startGameSceneMusic.mp3'
@@ -318,6 +325,14 @@ class gameScene extends Phaser.Scene {
 
 
     create() {
+        let animConfig = {
+            key: 'explodeAnimation',
+            frames: this.anims.generateFrameNumbers('explosion', { start: 0, end: 23, first: 23 }),
+            frameRate: 20,
+            repeat: -1
+        }
+        this.anims.create(animConfig);
+
         rocketSound = this.sound.add('rocketSound');
         rocketSound.setVolume(0);
         gameMusic = this.sound.add('gameSceneMusic');
@@ -333,7 +348,6 @@ class gameScene extends Phaser.Scene {
         rocket.body.maxVelocity.setTo(rocketSet.maxSpeed, rocketSet.maxSpeed);
         rocket.body.drag.setTo(rocketSet.drag, rocketSet.drag);
         myCam = this.cameras.main.startFollow(rocket);
-
 
         scoreText = this.add.text(50, 50, score, textConfig);
         scoreText.setOrigin(0.5, 0.5);
@@ -387,16 +401,25 @@ class gameScene extends Phaser.Scene {
 
         //Crash check
         this.physics.add.overlap(rocket, mets, function () {
-            gameMusic.stop();
-            this.sound.add('boom').setVolume(0.1).play();
-            this.scene.start('endGameScene');
+            if (!endGame) {
+                gameMusic.stop();
+                rocket.body.acceleration.setTo(0, 0);
+                rocket.body.velocity.setTo(0, 0);
+                this.add.sprite(rocket.x, rocket.y, 'explosion').play('explodeAnimation');
+                this.sound.add('boom').setVolume(0.1).play();
+                setTimeout(() => {
+                    this.scene.start('endGameScene');
+                }, 280);
+                endGame = true;
+            }
         }, null, this);
     }
 
 
     update() {
-        bg.tilePositionX = myCam.scrollX * 0.6;
-        bg.tilePositionY = myCam.scrollY * 0.6;
+        //Make parallax infinie background
+        bg.tilePositionX = myCam.scrollX * 0.4;
+        bg.tilePositionY = myCam.scrollY * 0.4;
 
 
         /****   Mets movement   ****/
@@ -483,13 +506,9 @@ class gameScene extends Phaser.Scene {
             if (!left & right) { rocket.setTexture('rightUpRotating_'+a); } //right + up rotating(up+ left- right+)
         }
 
-        /*
-        //Keep rocket in visible area
-        if (rocket.x > WIDTH) { rocket.x = 0; }
-        if (rocket.x < 0) { rocket.x = WIDTH; }
-        if (rocket.body.velocity.x != 0) {
+        /* if (rocket.body.velocity.x != 0) {
             rocket.rotation = Math.atan2(rocket.body.velocity.y, rocket.body.velocity.x);
-        }*/
+        } */
     }
 }
 
