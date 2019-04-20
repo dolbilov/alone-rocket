@@ -1,14 +1,14 @@
 /** @type {import("../typings/phaser")} */
 
 //Consts & variables
-const MET_NUMBER = 6,
+const MET_NUMBER = 5,
     WIDTH = 1280,
     HEIGHT = 720,
     START_X = WIDTH / 2,
     START_Y = HEIGHT / 2,
     ROTATION_FIX = Math.PI / 2,
     BLOCK_SPEED = 2,
-    VERSION = '1.8.0-a',
+    VERSION = '1.8.1-a',
     ANGLE_CHANGING_SPEED = 2;
 
 let game,
@@ -600,7 +600,7 @@ function reDraw(i) {
         mets[i].setRandomPosition(rocket.x - WIDTH / 2, rocket.y - 1.2 * HEIGHT, rocket.x + WIDTH / 2, rocket.y - HEIGHT / 2);
         ok = true;
         for (let j = 0; j < MET_NUMBER; j++) {
-            if ((Math.abs(mets[i].x - mets[j].x) < 100) && (i != j)) { ok = false; t++; }
+            if ((Math.abs(mets[i].x - mets[j].x) < 75) && (i != j)) { ok = false; t++; }
         }
         if (t == 8) { break; }
     } while (!ok);
