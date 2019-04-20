@@ -9,7 +9,9 @@ const MET_NUMBER = 5,
     ROTATION_FIX = Math.PI / 2,
     BLOCK_SPEED = 2,
     VERSION = '1.8.2-a',
-    ANGLE_CHANGING_SPEED = 2;
+    ANGLE_CHANGING_SPEED = 2,
+    MS_TO_S = 1 / 1000,
+    TIME_LIMIT = 15;
 
 let game,
     rocket,
@@ -43,7 +45,12 @@ let game,
     rocketSound,
     hardModeText,
     myCam,
-    endGame = false;
+    endGame = false,
+    startTime = null,
+    currentTime,
+    losingControlText = null,
+    losingTimeCounter = 0,
+    wasDown = false;
 
 
 window.onload = function() {
@@ -364,6 +371,17 @@ class gameScene extends Phaser.Scene {
         scoreText.setOrigin(0.5, 0.5);
         scoreText.setScrollFactor(0);
 
+        //Losint text set-up
+        losingControlText = this.add.text(rocket.body.x, rocket.body.y - 500, '', {
+            fontSize: 72,
+            fontFamily: 'VGAfontUpdate11',
+            align: 'center',
+            color: '#ff3300'
+        });
+        losingControlText.setOrigin(0.5, 0.5);
+        losingControlText.setScrollFactor(0, 0);
+        losingControlText.setVisible(false);
+
         //Met generate function
         for (let i = 0; i < MET_NUMBER; i++) {
             let met = this.add.sprite(0, 0, 'meteorite1');
@@ -412,19 +430,23 @@ class gameScene extends Phaser.Scene {
         //Crash check
         this.physics.add.overlap(rocket, mets, function () {
             if (!endGame) {
-                gameMusic.stop();
-                rocket.body.acceleration.setTo(0, 0);
-                rocket.body.velocity.setTo(0, 0);
-                this.sound.add('boom').setVolume(0.1).play();
-                setTimeout(() => {
-                    this.add.sprite(rocket.x, rocket.y, 'explosion').play('explodeAnimation').setScale(2.5);
-                }, 100)
-                setTimeout(() => {
-                    this.scene.start('endGameScene');
-                }, 280);
-                endGame = true;
+                this.endGameFunction();
             }
         }, null, this);
+    }
+
+
+    /** Make END GAME if lost control or crashed */
+    endGameFunction() {
+        gameMusic.stop();
+        game.sound.add('boom').setVolume(0.1).play();
+        setTimeout(() => {
+            this.add.sprite(rocket.x, rocket.y, 'explosion').play('explodeAnimation').setScale(2.5);
+        }, 100)
+        setTimeout(() => {
+            this.scene.start('endGameScene');
+        }, 320);
+        endGame = true;
     }
 
 
@@ -437,7 +459,7 @@ class gameScene extends Phaser.Scene {
         bg_1.tilePositionY = myCam.scrollY * 0.55;
 
 
-        /****   Mets movement   ****/
+        /* Mets movement */
         for (let i = 0; i < MET_NUMBER; i++) {
             //Mets down movement
             if (sessionStorage.getItem('isHardModeEnable') == 'true') {
@@ -468,13 +490,13 @@ class gameScene extends Phaser.Scene {
             }
         }
 
-        /****   User input processing   ****/
+        /*  User input processing  */
         let cursors = this.input.keyboard.createCursorKeys();
         let left = cursors.left.isDown,
             right = cursors.right.isDown,
             up = cursors.up.isDown;
 
-        // Rocket movement processing \\
+        /* Rocket movement processing */
         //Left/Right rotate processing
         if (left | right) {
             rocket.body.acceleration.x = Math.cos(rocket.rotation - ROTATION_FIX) * rocketSet.acceleration / 5;
@@ -504,7 +526,7 @@ class gameScene extends Phaser.Scene {
             rocketSound.setVolume(0);
         }
 
-        /****   Rocket animation   ****/
+        /* Rocket animation */
         let a = getRandomInt(1, 2);
         if (!up) {
             if (!left & !right) { rocket.setTexture('engineOff'); } //Without pressed keys(up- left- right-)
@@ -530,9 +552,34 @@ class gameScene extends Phaser.Scene {
             if (!left & right) { rocket.setTexture('rightUpRotating_'+a); } //right + up rotating(up+ left- right+)
         }
 
-        /* if (rocket.body.velocity.x != 0) {
-            rocket.rotation = Math.atan2(rocket.body.velocity.y, rocket.body.velocity.x);
-        } */
+       //Losing control check
+        if (rocket.body.rotation > 90 | rocket.body.rotation < -90) {
+            rocket.body.setMaxVelocity(rocketSet.maxSpeed * 2, rocketSet.maxSpeed * 2);
+            if (startTime == null) {
+                startTime = new Date().getTime();
+            }
+            currentTime = new Date().getTime();
+            let losingTime = TIME_LIMIT - (currentTime - startTime) * MS_TO_S;  //Time before lose control
+            //If almost lose control
+            if (losingTime < 10) {
+                if (losingTime <= 0 | losingTimeCounter == 3) {
+                    if (!endGame) {
+                        this.endGameFunction();
+                    }
+                };
+                wasDown = true;
+                losingControlText.setVisible(true);
+                losingControlText.setText(Math.round(losingTime) + ' second to loss of control\nStart flying up');
+            }
+        } else {
+            if (wasDown) {
+                wasDown = false;
+                losingTimeCounter++;
+            }
+            rocket.body.setMaxVelocity(rocketSet.maxSpeed, rocketSet.maxSpeed);
+            losingControlText.setVisible(false);
+            startTime = null;
+        }
     }
 }
 
