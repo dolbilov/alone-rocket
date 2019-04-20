@@ -8,7 +8,7 @@ const MET_NUMBER = 5,
     START_Y = HEIGHT / 2,
     ROTATION_FIX = Math.PI / 2,
     BLOCK_SPEED = 2,
-    VERSION = '1.8.1-a',
+    VERSION = '1.8.2-a',
     ANGLE_CHANGING_SPEED = 2;
 
 let game,
@@ -17,7 +17,7 @@ let game,
     rocketSet = {
         rotationSpeed: 180,
         acceleration: 200,
-        maxSpeed: 250,
+        maxSpeed: 85,
         drag: 25,
         gravity: 100
     },
@@ -30,7 +30,8 @@ let game,
     logoAngle = 0,
     menuMusic,
     gameMusic,
-    bg,
+    bg_0,
+    bg_1,
     mets = [],
     localStorageName = 'jarisBestScore',
     sessionStorageName = 'isNewGame',
@@ -145,7 +146,8 @@ class bootScene extends Phaser.Scene {
         this.load.image('kvantumLogo', '../assets/img/kvantumLogo.png');
         this.load.image('githubLogo', '../assets/img/githubLogo.png')
         this.load.image('startButton', '../assets/img/startButton.png');
-        this.load.image('background', '../assets/img/background.png');
+        this.load.image('background_0', '../assets/img/background_0.png');
+        this.load.image('background_1', '../assets/img/background_1.png');
         this.load.image('meteorite1', '../assets/img/meteorite1.png');
         this.load.image('meteorite2', '../assets/img/meteorite2.png');
         this.load.image('newGameButton', '../assets/img/newGameButton.png');
@@ -267,7 +269,6 @@ class startGameScene extends Phaser.Scene {
         if (sessionStorage.getItem('isHardModeEnable') === null) {
             sessionStorage.setItem('isHardModeEnable', 'false');
         }
-        //let text2 = sessionStorage.getItem('isHardModeEnable') == true ? 'Enable' : 'Disable';
         let text2 = '';
         if (sessionStorage.getItem('isHardModeEnable') == 'true') {
             text2 = 'Enable';
@@ -342,12 +343,17 @@ class gameScene extends Phaser.Scene {
         gameMusic.setVolume(0.2);
 
         //Background
-        bg = this.add.tileSprite(0, 0, 1280,720, 'background');
-        bg.setOrigin(0, 0);
-        bg.setScrollFactor(0);
+        bg_0 = this.add.tileSprite(0, 0, 1280,720, 'background_0');
+        bg_0.setOrigin(0, 0);
+        bg_0.setScrollFactor(0);
+
+        bg_1 = this.add.tileSprite(0, 0, 1280,720, 'background_1');
+        bg_1.setOrigin(0, 0);
+        bg_1.setScrollFactor(0);
+        bg_1.setAlpha(0.6);
 
         //Rocket
-        rocket = this.physics.add.sprite(START_X, START_Y, 'engineOff').setScale(0.25);
+        rocket = this.physics.add.sprite(START_X, START_Y + 300, 'engineOff').setScale(0.25);
         rocket.body.bounce.setTo(0.25, 0.25);
         rocket.body.maxVelocity.setTo(rocketSet.maxSpeed, rocketSet.maxSpeed);
         rocket.body.drag.setTo(rocketSet.drag, rocketSet.drag);
@@ -392,7 +398,7 @@ class gameScene extends Phaser.Scene {
             //Generate position
             let ok, t = 0;
             do {
-                met.setRandomPosition(0, -HEIGHT, WIDTH, HEIGHT);
+                met.setRandomPosition(0, -1.5 * HEIGHT, WIDTH, HEIGHT);
                 ok = true;
                 for (let j = 0; j < currentNumber; j++) {
                     if (Math.abs(met.x - mets[j].x) < 100) { ok = false; t++; }
@@ -409,8 +415,10 @@ class gameScene extends Phaser.Scene {
                 gameMusic.stop();
                 rocket.body.acceleration.setTo(0, 0);
                 rocket.body.velocity.setTo(0, 0);
-                this.add.sprite(rocket.x, rocket.y, 'explosion').play('explodeAnimation').setScale(2);
                 this.sound.add('boom').setVolume(0.1).play();
+                setTimeout(() => {
+                    this.add.sprite(rocket.x, rocket.y, 'explosion').play('explodeAnimation').setScale(2.5);
+                }, 100)
                 setTimeout(() => {
                     this.scene.start('endGameScene');
                 }, 280);
@@ -422,8 +430,11 @@ class gameScene extends Phaser.Scene {
 
     update() {
         //Make parallax infinie background
-        bg.tilePositionX = myCam.scrollX * 0.4;
-        bg.tilePositionY = myCam.scrollY * 0.4;
+        bg_0.tilePositionX = myCam.scrollX * 0.35;
+        bg_0.tilePositionY = myCam.scrollY * 0.35;
+
+        bg_1.tilePositionX = myCam.scrollX * 0.55;
+        bg_1.tilePositionY = myCam.scrollY * 0.55;
 
 
         /****   Mets movement   ****/
@@ -560,6 +571,44 @@ class endGameScene extends Phaser.Scene {
             text = 'Your score is ' + score + '\nYour best score is ' + bestScore;
         }
         this.add.text(START_X, START_Y - 60, text, textConfig).setOrigin(0.5, 0.5);
+
+        //Hard mode text
+        this.add.text(140, HEIGHT - 50, 'Hard mode:', {
+            fontSize: 42,
+            fontFamily: 'VGAfontUpdate11',
+            align: 'center',
+            color: '#000000'
+        }).setOrigin(0.5, 0.5);
+        let text2 = '';
+        if (sessionStorage.getItem('isHardModeEnable') == 'true') {
+            text2 = 'Enable';
+        } else {
+            text2 = 'Disable';
+        }
+        hardModeText = this.add.text(360, HEIGHT - 50, text2, {
+            fontSize: 42,
+            fontFamily: 'VGAfontUpdate11',
+            align: 'center',
+        }).setOrigin(0.5, 0.5);
+        if (sessionStorage.getItem('isHardModeEnable') == 'false') {
+            hardModeText.setTint(0xff3300);
+        } else {
+            hardModeText.setTint(0x009900);
+        }
+        hardModeText.setInteractive();
+        hardModeText.on('pointerdown', function() {
+            if (sessionStorage.getItem('isHardModeEnable') == 'false') {
+                hardModeText.text = 'Enable';
+                sessionStorage.setItem('isHardModeEnable', 'true');
+                hardModeText.clearTint();
+                hardModeText.setTint(0x009900);
+            } else {
+                hardModeText.text = 'Disable';
+                sessionStorage.setItem('isHardModeEnable', 'false');
+                hardModeText.clearTint();
+                hardModeText.setTint(0xff3300);
+            }
+        });
     }
 }
 
@@ -597,11 +646,11 @@ function reDraw(i) {
     //Generate position
     let ok, t = 0;
     do {
-        mets[i].setRandomPosition(rocket.x - WIDTH / 2, rocket.y - 1.2 * HEIGHT, rocket.x + WIDTH / 2, rocket.y - HEIGHT / 2);
+        mets[i].setRandomPosition(rocket.x - WIDTH / 2, rocket.y - 1.5 * HEIGHT, WIDTH, HEIGHT);
         ok = true;
         for (let j = 0; j < MET_NUMBER; j++) {
             if ((Math.abs(mets[i].x - mets[j].x) < 75) && (i != j)) { ok = false; t++; }
         }
-        if (t == 8) { break; }
+        if (t >= 8) { break; }
     } while (!ok);
 }
