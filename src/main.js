@@ -1,14 +1,14 @@
 /** @type {import("../typings/phaser")} */
 
 //Consts & variables
-const MET_NUMBER = 4,
+const MET_NUMBER = 6,
     WIDTH = 1280,
     HEIGHT = 720,
     START_X = WIDTH / 2,
     START_Y = HEIGHT / 2,
     ROTATION_FIX = Math.PI / 2,
     BLOCK_SPEED = 2,
-    VERSION = '1.7.6-a',
+    VERSION = '1.8.0-a',
     ANGLE_CHANGING_SPEED = 2;
 
 let game,
@@ -325,6 +325,7 @@ class gameScene extends Phaser.Scene {
 
 
     create() {
+        //Explosion animation
         let animConfig = {
             key: 'explodeAnimation',
             frames: this.anims.generateFrameNumbers('explosion', { start: 0, end: 23, first: 23 }),
@@ -333,22 +334,26 @@ class gameScene extends Phaser.Scene {
         }
         this.anims.create(animConfig);
 
+        //Music & sound
         rocketSound = this.sound.add('rocketSound');
         rocketSound.setVolume(0);
         gameMusic = this.sound.add('gameSceneMusic');
         gameMusic.play({loop: true});
         gameMusic.setVolume(0.2);
 
+        //Background
         bg = this.add.tileSprite(0, 0, 1280,720, 'background');
         bg.setOrigin(0, 0);
         bg.setScrollFactor(0);
 
+        //Rocket
         rocket = this.physics.add.sprite(START_X, START_Y, 'engineOff').setScale(0.25);
         rocket.body.bounce.setTo(0.25, 0.25);
         rocket.body.maxVelocity.setTo(rocketSet.maxSpeed, rocketSet.maxSpeed);
         rocket.body.drag.setTo(rocketSet.drag, rocketSet.drag);
         myCam = this.cameras.main.startFollow(rocket);
 
+        //Score text
         scoreText = this.add.text(50, 50, score, textConfig);
         scoreText.setOrigin(0.5, 0.5);
         scoreText.setScrollFactor(0);
@@ -359,7 +364,6 @@ class gameScene extends Phaser.Scene {
             this.physics.add.existing(met);
             met.body.setGravityY(0);
             met.body.setMaxVelocity(BLOCK_SPEED);
-            //met.body.maxVelocity = BLOCK_SPEED;
             met.angle = getRandomInt(0, 360);
             mets.push(met);
 
@@ -391,9 +395,9 @@ class gameScene extends Phaser.Scene {
                 met.setRandomPosition(0, -HEIGHT, WIDTH, HEIGHT);
                 ok = true;
                 for (let j = 0; j < currentNumber; j++) {
-                    if (Math.abs(met.x - mets[j].x) < 150) { ok = false; t++; }
+                    if (Math.abs(met.x - mets[j].x) < 100) { ok = false; t++; }
                 }
-                if (t === 15) { break; }
+                if (t === 8) { break; }
             } while (!ok);
 
             currentNumber++;
@@ -405,7 +409,7 @@ class gameScene extends Phaser.Scene {
                 gameMusic.stop();
                 rocket.body.acceleration.setTo(0, 0);
                 rocket.body.velocity.setTo(0, 0);
-                this.add.sprite(rocket.x, rocket.y, 'explosion').play('explodeAnimation');
+                this.add.sprite(rocket.x, rocket.y, 'explosion').play('explodeAnimation').setScale(2);
                 this.sound.add('boom').setVolume(0.1).play();
                 setTimeout(() => {
                     this.scene.start('endGameScene');
@@ -432,14 +436,23 @@ class gameScene extends Phaser.Scene {
                     mets[i].x -= 1;
                 }
             }
-            mets[i].y += BLOCK_SPEED;
+            if (mets[i].y < rocket.y - HEIGHT / 2 - 10){
+                mets[i].y += 5;
+            } else {
+                mets[i].y += BLOCK_SPEED;
+            }
+
+            //Mets rotating
             mets[i].angle += ANGLE_CHANGING_SPEED;
             if (mets[i].angle === 360) { mets[i].angle = 0; }
 
             //Redraw if need
-            if (mets[i].y > HEIGHT) {
+            if ((mets[i].y > rocket.y + HEIGHT / 2)) {
                 score++;
                 scoreText.setText(score);
+                reDraw(i);
+            }
+            if ((mets[i].x < rocket.x - WIDTH / 2 - 30) | (mets[i].x > rocket.x + WIDTH / 2 + 30)) {
                 reDraw(i);
             }
         }
@@ -584,11 +597,11 @@ function reDraw(i) {
     //Generate position
     let ok, t = 0;
     do {
-        mets[i].setRandomPosition(0, -HEIGHT, WIDTH, HEIGHT);
+        mets[i].setRandomPosition(rocket.x - WIDTH / 2, rocket.y - 1.2 * HEIGHT, rocket.x + WIDTH / 2, rocket.y - HEIGHT / 2);
         ok = true;
         for (let j = 0; j < MET_NUMBER; j++) {
-            if ((Math.abs(mets[i].x - mets[j].x) < 150) && (i != j)) { ok = false; t++; }
+            if ((Math.abs(mets[i].x - mets[j].x) < 100) && (i != j)) { ok = false; t++; }
         }
-        if (t === 15) { break; }
+        if (t == 8) { break; }
     } while (!ok);
 }
