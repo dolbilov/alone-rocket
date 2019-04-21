@@ -8,10 +8,12 @@ const MET_NUMBER = 5,
     START_Y = HEIGHT / 2,
     ROTATION_FIX = Math.PI / 2,
     BLOCK_SPEED = 2,
-    VERSION = '1.8.2-a',
+    VERSION = '1.9.0-rtm',
     ANGLE_CHANGING_SPEED = 2,
     MS_TO_S = 1 / 1000,
-    TIME_LIMIT = 15;
+    TIME_LIMIT = 15,
+    COINS_NUMBER = 8,
+    COIN_SPEED = 3;
 
 let game,
     rocket,
@@ -35,6 +37,7 @@ let game,
     bg_0,
     bg_1,
     mets = [],
+    coins = [],
     localStorageName = 'jarisBestScore',
     sessionStorageName = 'isNewGame',
     texture1Count = 0,
@@ -50,7 +53,8 @@ let game,
     currentTime,
     losingControlText = null,
     losingTimeCounter = 0,
-    wasDown = false;
+    wasDown = false,
+    collectSound;
 
 
 window.onload = function() {
@@ -89,17 +93,10 @@ class bootScene extends Phaser.Scene {
             progressBox.fillStyle(0x222222, 0.8);
             progressBox.fillRect(START_X - 160, START_Y - 25 - d, 320, 50);
 
-            let textStyle = {
-                font: '20px monospace',
-                fill: '#fff',
-                align: 'center'
-            }
-
             let loadingText = this.make.text({
                 x: START_X,
                 y: START_Y + 30,
                 text: 'Loading...',
-                textStyle
             });
             loadingText.setOrigin(0.5, 0.5);
 
@@ -107,7 +104,6 @@ class bootScene extends Phaser.Scene {
                 x: START_X,
                 y: START_Y + 55,
                 text: '0%',
-                textStyle
             });
             percentText.setOrigin(0.5, 0.5);
 
@@ -115,7 +111,6 @@ class bootScene extends Phaser.Scene {
                 x: START_X,
                 y: START_Y + 80,
                 text: '',
-                textStyle
             });
             assetText.setOrigin(0.5, 0.5);
 
@@ -148,10 +143,17 @@ class bootScene extends Phaser.Scene {
             frameHeight: 64,
             endFrame: 23
         });
+        this.load.spritesheet('coins', '../assets/img/coins.png', {
+            frameWidth: 32,
+            frameHeight: 32,
+            endFrame: 4
+        });
+
         //Images load
         this.load.image('preview', '../assets/img/preview.jpg');
         this.load.image('kvantumLogo', '../assets/img/kvantumLogo.png');
         this.load.image('githubLogo', '../assets/img/githubLogo.png')
+        this.load.image('ground', '../assets/img/ground.png')
         this.load.image('startButton', '../assets/img/startButton.png');
         this.load.image('background_0', '../assets/img/background_0.png');
         this.load.image('background_1', '../assets/img/background_1.png');
@@ -170,7 +172,6 @@ class bootScene extends Phaser.Scene {
         this.load.image('rightUpRotating_1', '../assets/img/rocket/rightUpRotating_1.png');
         this.load.image('rightUpRotating_2', '../assets/img/rocket/rightUpRotating_2.png');
 
-
         //Audio load
         this.load.audio('startGameSceneMusic', [
             '../assets/audio/startGameSceneMusic.ogg',
@@ -187,6 +188,10 @@ class bootScene extends Phaser.Scene {
         this.load.audio('rocketSound', [
             '../assets/audio/rocketSound.ogg',
             '../assets/audio/rocketSound.mp3'
+        ]);
+        this.load.audio('collectSound', [
+            '../assets/audio/collectSound.ogg',
+            '../assets/audio/collectSound.mp3'
         ]);
     }
 
@@ -247,13 +252,15 @@ class startGameScene extends Phaser.Scene {
                 align: 'center'
         };
 
-        this.add.text(WIDTH - 285, HEIGHT - 75, 'v' + VERSION, {
+        //Version text
+        this.add.text(WIDTH - 325, HEIGHT - 75, 'v' + VERSION, {
             fontSize: 56,
             fontFamily: 'VGAfontUpdate11',
             align: 'center',
             color: '#000000'
         });
 
+        //Visit us here text + logo
         this.add.text(20, HEIGHT - 115, 'Visit us here ->', {
             fontSize: 42,
             fontFamily: 'VGAfontUpdate11',
@@ -267,6 +274,7 @@ class startGameScene extends Phaser.Scene {
             window.open("https://github.com/dolbilov/dolbilov.github.io");
         }, this);
 
+        //Hard mode text
         this.add.text(140, HEIGHT - 50, 'Hard mode:', {
             fontSize: 42,
             fontFamily: 'VGAfontUpdate11',
@@ -311,7 +319,7 @@ class startGameScene extends Phaser.Scene {
         this.add.text(START_X, START_Y - 290, 'Just alone rocket\nin the space', textConfig).setOrigin(0.5, 0.5);
         this.add.text(START_X - 200, START_Y - 140, 'Directed by:\nAntipov Dmitriy', smallTextConfig).setOrigin(0.5, 0.5);
         this.add.text(START_X - 200, START_Y - 45, 'Programmer:\nDolbilov Kirill', smallTextConfig).setOrigin(0.5, 0.5);
-        this.add.text(START_X - 200, START_Y + 80, 'Designers:\nChirkov Anatoliy\nVedin Ilya', smallTextConfig).setOrigin(0.5, 0.5);
+        this.add.text(START_X - 200, START_Y + 80, 'Designers:\nChirkov Anatoliy\nVedin Ilya\nDaniel Volk', smallTextConfig).setOrigin(0.5, 0.5);
         this.add.text(START_X + 220, START_Y - 20, 'Thank you to\nall the testers:\nAleksandr\nGorbachenkov\n\nOleg Chernov\n\nRoman Chernov\n\nDanil Shanin', smallTextConfig).setOrigin(0.5, 0.5);
     }
 
@@ -342,12 +350,18 @@ class gameScene extends Phaser.Scene {
         }
         this.anims.create(animConfig);
 
+
         //Music & sound
         rocketSound = this.sound.add('rocketSound');
         rocketSound.setVolume(0);
+
         gameMusic = this.sound.add('gameSceneMusic');
         gameMusic.play({loop: true});
         gameMusic.setVolume(0.2);
+
+        collectSound = this.sound.add('collectSound');
+        collectSound.setVolume(0.5);
+
 
         //Background
         bg_0 = this.add.tileSprite(0, 0, 1280,720, 'background_0');
@@ -359,6 +373,9 @@ class gameScene extends Phaser.Scene {
         bg_1.setScrollFactor(0);
         bg_1.setAlpha(0.6);
 
+        this.add.image(START_X, HEIGHT - 150, 'ground').setScrollFactor(0, 0).setOrigin(0.5, 0.5).setScale(1, 0.8);
+
+
         //Rocket
         rocket = this.physics.add.sprite(START_X, START_Y + 300, 'engineOff').setScale(0.25);
         rocket.body.bounce.setTo(0.25, 0.25);
@@ -366,10 +383,12 @@ class gameScene extends Phaser.Scene {
         rocket.body.drag.setTo(rocketSet.drag, rocketSet.drag);
         myCam = this.cameras.main.startFollow(rocket);
 
+
         //Score text
         scoreText = this.add.text(50, 50, score, textConfig);
         scoreText.setOrigin(0.5, 0.5);
         scoreText.setScrollFactor(0);
+
 
         //Losint text set-up
         losingControlText = this.add.text(rocket.body.x, rocket.body.y - 500, '', {
@@ -381,6 +400,7 @@ class gameScene extends Phaser.Scene {
         losingControlText.setOrigin(0.5, 0.5);
         losingControlText.setScrollFactor(0, 0);
         losingControlText.setVisible(false);
+
 
         //Met generate function
         for (let i = 0; i < MET_NUMBER; i++) {
@@ -427,12 +447,61 @@ class gameScene extends Phaser.Scene {
             currentNumber++;
         }
 
+
         //Crash check
         this.physics.add.overlap(rocket, mets, function () {
             if (!endGame) {
                 this.endGameFunction();
             }
         }, null, this);
+
+
+        /*  Coins generate  */
+        //Coins animating config
+        let coinsAnimConfig = {
+            key: 'coinAnimation',
+            frames: this.anims.generateFrameNumbers('coins', { start: 0, end: 3, first: 0 }),
+            frameRate: 11,
+            repeat: -1
+        }
+
+        //Generating
+        currentNumber = 0;
+        for (let i = 0; i < COINS_NUMBER; i++) {
+            let coin = this.add.sprite(0, 0, 'coins', 0);
+            coin.setScale(2);
+            this.physics.add.existing(coin);
+            coin.body.setGravityY(0);
+            coin.body.setMaxVelocity(COIN_SPEED);
+            coins.push(coin);
+
+            //Generate position
+            let ok = null, t = 0;
+            do {
+                coin.setRandomPosition(0, -1.5 * HEIGHT, WIDTH, HEIGHT);
+                ok = true;
+                for (let j = 0; j < currentNumber; j++) {
+                    if (Math.abs(coin.x - coins[j].x) < 40) { ok = false; t++; }
+                }
+                if (t === 8) { break; }
+            } while (!ok);
+
+            currentNumber++;
+
+            //Coin animate creating
+            this.anims.create(coinsAnimConfig);
+            coin.play('coinAnimation');
+        }
+
+        //Earn check
+        /* for (let i = 0; i < COINS_NUMBER; i++) {
+            this.physics.add.overlap(rocket, coins[i], function () {
+                collectSound.play({ loop: false });
+                score++;
+                scoreText.text = score;
+                moneyReDraw(i);
+            }, null, this);
+        } */
     }
 
 
@@ -455,8 +524,8 @@ class gameScene extends Phaser.Scene {
         bg_0.tilePositionX = myCam.scrollX * 0.35;
         bg_0.tilePositionY = myCam.scrollY * 0.35;
 
-        bg_1.tilePositionX = myCam.scrollX * 0.55;
-        bg_1.tilePositionY = myCam.scrollY * 0.55;
+        bg_1.tilePositionX = myCam.scrollX * 0.47;
+        bg_1.tilePositionY = myCam.scrollY * 0.47;
 
 
         /* Mets movement */
@@ -469,6 +538,7 @@ class gameScene extends Phaser.Scene {
                     mets[i].x -= 1;
                 }
             }
+
             if (mets[i].y < rocket.y - HEIGHT / 2 - 10){
                 mets[i].y += 5;
             } else {
@@ -481,14 +551,40 @@ class gameScene extends Phaser.Scene {
 
             //Redraw if need
             if ((mets[i].y > rocket.y + HEIGHT / 2)) {
-                score++;
-                scoreText.setText(score);
+                // score++;
+                // scoreText.setText(score);
                 reDraw(i);
             }
             if ((mets[i].x < rocket.x - WIDTH / 2 - 30) | (mets[i].x > rocket.x + WIDTH / 2 + 30)) {
                 reDraw(i);
             }
         }
+
+        /* Coins movement */
+        for (let i = 0; i < COINS_NUMBER; i++) {
+            if (Phaser.Geom.Intersects.RectangleToRectangle(rocket.getBounds(), coins[i].getBounds()) & !endGame) {
+                collectSound.play({ loop: false });
+                score++;
+                scoreText.text = score;
+                moneyReDraw(i);
+            }
+            if (coins[i].y < rocket.y - HEIGHT / 2 - 10) {
+                coins[i].y += 5;
+            } else {
+                coins[i].y += COIN_SPEED;
+            }
+
+            //Redraw if coin's y wrong
+            if ((coins[i].y > rocket.y + HEIGHT / 2)) {
+                moneyReDraw(i);
+            }
+
+            //Redraw than coin's x wrong
+            if ((coins[i].x < rocket.x - WIDTH / 2 - 30) | (coins[i].x > rocket.x + WIDTH / 2 + 30)) {
+                moneyReDraw(i);
+            }
+        }
+
 
         /*  User input processing  */
         let cursors = this.input.keyboard.createCursorKeys();
@@ -697,6 +793,19 @@ function reDraw(i) {
         ok = true;
         for (let j = 0; j < MET_NUMBER; j++) {
             if ((Math.abs(mets[i].x - mets[j].x) < 75) && (i != j)) { ok = false; t++; }
+        }
+        if (t >= 8) { break; }
+    } while (!ok);
+}
+
+/** Redraw money when down or collected */
+function moneyReDraw(i) {
+    let ok, t = 0;
+    do {
+        coins[i].setRandomPosition(rocket.x - WIDTH / 2, rocket.y - 1.5 * HEIGHT, WIDTH, HEIGHT);
+        ok = true;
+        for (let j = 0; j <COINS_NUMBER; j++) {
+            if ((Math.abs(coins[i].x - coins[j].x) < 40) && (i != j)) { ok = false; t++; }
         }
         if (t >= 8) { break; }
     } while (!ok);
