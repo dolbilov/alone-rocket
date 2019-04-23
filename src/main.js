@@ -8,12 +8,15 @@ const MET_NUMBER = 5,
     START_Y = HEIGHT / 2,
     ROTATION_FIX = Math.PI / 2,
     BLOCK_SPEED = 2,
-    VERSION = '1.9.0-rtm',
     ANGLE_CHANGING_SPEED = 2,
     MS_TO_S = 1 / 1000,
-    TIME_LIMIT = 15,
+    TIME_LIMIT = 8,
+    TIME_BEFORE_WARNING = 5,
     COINS_NUMBER = 8,
-    COIN_SPEED = 3;
+    COIN_SPEED = 3,
+    FUEL_CONSUMPTION_SPEED = 0.05,
+    FUEL_BOOST = 20;
+    VERSION = '2.0.0-rtm';
 
 let game,
     rocket,
@@ -54,7 +57,9 @@ let game,
     losingControlText = null,
     losingTimeCounter = 0,
     wasDown = false,
-    collectSound;
+    collectSound,
+    instructionsText;
+
 
 
 window.onload = function() {
@@ -70,13 +75,13 @@ window.onload = function() {
             }
         },
         audio: { disableWebAudio: true },
-        scene: [bootScene, startGameScene, gameScene, endGameScene ]
+        scene: [bootScene, startGameScene, previewScene, gameScene, endGameScene]
     }
     game = new Phaser.Game(config);
     window.focus();
 }
 
-/**** Scenes set-up ****/
+/* Scenes set-up */
 class bootScene extends Phaser.Scene {
     constructor() {
         super('bootScene');
@@ -148,17 +153,21 @@ class bootScene extends Phaser.Scene {
             frameHeight: 32,
             endFrame: 4
         });
+        this.load.spritesheet('mets', '../assets/img/mets.png', {
+            frameWidth: 90,
+            frameHeight: 70,
+            endFrame: 5
+        });
 
         //Images load
         this.load.image('preview', '../assets/img/preview.jpg');
+        this.load.image('earth', '../assets/img/earth.jpg');
         this.load.image('kvantumLogo', '../assets/img/kvantumLogo.png');
         this.load.image('githubLogo', '../assets/img/githubLogo.png')
         this.load.image('ground', '../assets/img/ground.png')
         this.load.image('startButton', '../assets/img/startButton.png');
         this.load.image('background_0', '../assets/img/background_0.png');
         this.load.image('background_1', '../assets/img/background_1.png');
-        this.load.image('meteorite1', '../assets/img/meteorite1.png');
-        this.load.image('meteorite2', '../assets/img/meteorite2.png');
         this.load.image('newGameButton', '../assets/img/newGameButton.png');
         this.load.image('engineOff', '../assets/img/rocket/engineOff.png');
         this.load.image('engineOn_1', '../assets/img/rocket/engineOn_1.png');
@@ -171,6 +180,7 @@ class bootScene extends Phaser.Scene {
         this.load.image('rightRotating_2', '../assets/img/rocket/rightRotating_2.png');
         this.load.image('rightUpRotating_1', '../assets/img/rocket/rightUpRotating_1.png');
         this.load.image('rightUpRotating_2', '../assets/img/rocket/rightUpRotating_2.png');
+        this.load.image('barrel', '../assets/img/barrel.png');
 
         //Audio load
         this.load.audio('startGameSceneMusic', [
@@ -193,13 +203,16 @@ class bootScene extends Phaser.Scene {
             '../assets/audio/collectSound.ogg',
             '../assets/audio/collectSound.mp3'
         ]);
+        this.load.audio('countdown', [
+            '../assets/audio/countdown.ogg',
+            '../assets/audio/countdown.mp3'
+        ]);
     }
 
     create() {
         if (sessionStorage.getItem(sessionStorageName) !== 'true') {
             this.scene.start('gameScene');
         }
-        sessionStorage.setItem(sessionStorageName, 'true');
 
         let preview = this.add.sprite(START_X, START_Y, 'preview');
         preview.setInteractive();
@@ -239,7 +252,7 @@ class startGameScene extends Phaser.Scene {
         button.setOrigin(0.5, 0.5);
         button.on('pointerdown', function(pointer) {
             menuMusic.stop();
-            this.scene.start('gameScene');
+            this.scene.start('previewScene');
         }, this);
 
         this.add.image(WIDTH * 0.9, START_Y, 'kvantumLogo').setScale(0.5, 0.5);
@@ -319,8 +332,8 @@ class startGameScene extends Phaser.Scene {
         this.add.text(START_X, START_Y - 290, 'Just alone rocket\nin the space', textConfig).setOrigin(0.5, 0.5);
         this.add.text(START_X - 200, START_Y - 140, 'Directed by:\nAntipov Dmitriy', smallTextConfig).setOrigin(0.5, 0.5);
         this.add.text(START_X - 200, START_Y - 45, 'Programmer:\nDolbilov Kirill', smallTextConfig).setOrigin(0.5, 0.5);
-        this.add.text(START_X - 200, START_Y + 80, 'Designers:\nChirkov Anatoliy\nVedin Ilya\nDaniel Volk', smallTextConfig).setOrigin(0.5, 0.5);
-        this.add.text(START_X + 220, START_Y - 20, 'Thank you to\nall the testers:\nAleksandr\nGorbachenkov\n\nOleg Chernov\n\nRoman Chernov\n\nDanil Shanin', smallTextConfig).setOrigin(0.5, 0.5);
+        this.add.text(START_X - 200, START_Y + 80, 'Designers:\nChirkov Anatoliy\nVedin Ilya\nDaniel Volk\nAlex Finn', smallTextConfig).setOrigin(0.5, 0.5);
+        this.add.text(START_X + 220, START_Y - 10, 'Thank you to\nall the testers:\nAlex Finn\n\nOleg Chernov\n\nRoman Chernov\n\nDanil Shanin', smallTextConfig).setOrigin(0.5, 0.5);
     }
 
     update() {
@@ -334,10 +347,98 @@ class startGameScene extends Phaser.Scene {
 }
 
 
+class previewScene extends Phaser.Scene {
+    constructor() {
+        super('previewScene');
+    }
+
+    earth;
+    bg_0;
+    bg_1;
+    planet;
+    sceneNumber = 1;
+    countdown;
+
+    create() {
+        this.countdown = this.sound.add('countdown', { loop: false });
+        this.countdown.play();
+
+        this.earth = this.add.image(START_X, START_Y, 'earth');
+
+        rocket = this.add.sprite(START_X, START_Y + 320, 'engineOff');
+        rocket.setScale(0.25);
+        rocket.setDepth(1);
+
+        this.bg_0 = this.add.tileSprite(0, 0, 1280, 720, 'background_0');
+        this.bg_0.setOrigin(0, 0);
+        this.bg_0.setScrollFactor(0);
+        this.bg_0.setVisible(false);
+
+        this.bg_1 = this.add.tileSprite(0, 0, 1280, 720, 'background_1');
+        this.bg_1.setOrigin(0, 0);
+        this.bg_1.setScrollFactor(0);
+        this.bg_1.setAlpha(0.6);
+        this.bg_1.setVisible(false);
+
+        this.planet = this.add.image(START_X, HEIGHT - 150, 'ground')
+        this.planet.setScrollFactor(0, 0)
+        this.planet.setOrigin(0.5, 0.5)
+        this.planet.setScale(1, 0.8);
+        this.planet.setVisible(false);
+
+        rocketSound = this.sound.add('rocketSound', { loop: true });
+    }
+
+
+    update() {
+        if (!this.countdown.isPlaying & !rocketSound.isPlaying) {
+            rocketSound.play();
+        }
+        //Rocket fly
+        if (!this.countdown.isPlaying) {
+            setTimeout(() => {
+                rocket.y -= 4;
+            }, 75);
+        }
+
+        //Rocket animation
+        if (Math.random() < 0.5) {
+            rocket.setTexture('engineOn_1');
+        } else {
+            rocket.setTexture('engineOn_2');
+        }
+
+        //Change scene
+        if (rocket.y < START_Y - HEIGHT / 2 - 100 & this.sceneNumber == 1) {
+            this.earth.destroy();
+            this.bg_0.setVisible(true);
+            this.bg_1.setVisible(true);
+            this.planet.setVisible(true);
+            rocket.y = HEIGHT + 100;
+            this.sceneNumber = 2;
+        }
+
+        //Start game
+        if (rocket.y == START_Y & this.sceneNumber == 2) {
+            rocketSound.stop();
+            this.bg_0.destroy();
+            this.bg_1.destroy();
+            rocket.destroy();
+            this.planet.destroy();
+            this.scene.start('gameScene');
+        }
+    }
+}
+
+
 class gameScene extends Phaser.Scene {
     constructor() {
         super("gameScene");
     }
+
+    fuelIndicator;
+    fuel = 100;
+    isHardModeEnable = sessionStorage.getItem('isHardModeEnable');
 
 
     create() {
@@ -378,9 +479,11 @@ class gameScene extends Phaser.Scene {
 
         //Rocket
         rocket = this.physics.add.sprite(START_X, START_Y + 300, 'engineOff').setScale(0.25);
+        rocket.setDepth(1);
         rocket.body.bounce.setTo(0.25, 0.25);
         rocket.body.maxVelocity.setTo(rocketSet.maxSpeed, rocketSet.maxSpeed);
         rocket.body.drag.setTo(rocketSet.drag, rocketSet.drag);
+
         myCam = this.cameras.main.startFollow(rocket);
 
 
@@ -401,37 +504,42 @@ class gameScene extends Phaser.Scene {
         losingControlText.setScrollFactor(0, 0);
         losingControlText.setVisible(false);
 
+        //Instructions text
+        instructionsText = this.add.text(rocket.body.x, rocket.body.y - 500, 'Fly up to collect coins\nUse arrows to control rocket', {
+            fontSize: 56,
+            fontFamily: 'VGAfontUpdate11',
+            align: 'center',
+            color: '#fff'
+        });
+        instructionsText.setOrigin(0.5, 0.5);
+        instructionsText.setScrollFactor(0, 0);
+        if (sessionStorage.getItem(sessionStorageName) == 'false') {
+            instructionsText.setVisible(false);
+        }
+
+        //Make fuel indicator
+        if (this.isHardModeEnable == 'true') {
+            this.add.graphics().lineStyle(3, 0x00ff00, 1);
+            this.add.graphics().strokeRect(97, 27, 306, 36).setScrollFactor(0, 0);
+
+            this.fuelIndicator = this.add.graphics();
+            this.fuelIndicator.fillStyle(0xb36b00);
+            this.fuelIndicator.fillRect(100, 30, 300, 30);
+            this.fuelIndicator.setScrollFactor(0, 0);
+        }
+
+        sessionStorage.setItem(sessionStorageName, 'true');
+
 
         //Met generate function
         for (let i = 0; i < MET_NUMBER; i++) {
-            let met = this.add.sprite(0, 0, 'meteorite1');
+            let met = this.add.sprite(0, 0, 'mets', i);
             this.physics.add.existing(met);
             met.body.setGravityY(0);
             met.body.setMaxVelocity(BLOCK_SPEED);
             met.angle = getRandomInt(0, 360);
             mets.push(met);
 
-            //Generate texture
-            if (Math.random() < 0.5) {
-                met.setTexture('meteorite1');
-                texture1Count++;
-            } else {
-                met.setTexture('meteorite2');
-                texture2Count++;
-            }
-
-            //Change texture if all mets has same textures
-            if (texture1Count === MET_NUMBER) {
-                let b = getRandomInt(0, MET_NUMBER - 1);
-                mets[b].setTexture('meteorite2');
-                texture1Count--;
-                texture2Count++;
-            } else if (texture2Count === MET_NUMBER) {
-                let b = getRandomInt(0, MET_NUMBER - 1);
-                mets[b].setTexture('meteorite1');
-                texture2Count--;
-                texture1Count++;
-            }
 
             //Generate position
             let ok, t = 0;
@@ -468,8 +576,19 @@ class gameScene extends Phaser.Scene {
         //Generating
         currentNumber = 0;
         for (let i = 0; i < COINS_NUMBER; i++) {
-            let coin = this.add.sprite(0, 0, 'coins', 0);
-            coin.setScale(2);
+            let coin;
+            if (this.isHardModeEnable == 'false') {
+                //NOT hard mode
+                coin = this.add.sprite(0, 0, 'coins', 0);
+                coin.setScale(2);
+
+                //Coin animate creating
+                this.anims.create(coinsAnimConfig);
+                coin.play('coinAnimation');
+            } else {
+                //Hard mode
+                coin = this.add.sprite(0, 0, 'barrel');
+            }
             this.physics.add.existing(coin);
             coin.body.setGravityY(0);
             coin.body.setMaxVelocity(COIN_SPEED);
@@ -478,7 +597,7 @@ class gameScene extends Phaser.Scene {
             //Generate position
             let ok = null, t = 0;
             do {
-                coin.setRandomPosition(0, -1.5 * HEIGHT, WIDTH, HEIGHT);
+                coin.setRandomPosition(0, -0.5 * HEIGHT, WIDTH, HEIGHT);
                 ok = true;
                 for (let j = 0; j < currentNumber; j++) {
                     if (Math.abs(coin.x - coins[j].x) < 40) { ok = false; t++; }
@@ -487,21 +606,7 @@ class gameScene extends Phaser.Scene {
             } while (!ok);
 
             currentNumber++;
-
-            //Coin animate creating
-            this.anims.create(coinsAnimConfig);
-            coin.play('coinAnimation');
         }
-
-        //Earn check
-        /* for (let i = 0; i < COINS_NUMBER; i++) {
-            this.physics.add.overlap(rocket, coins[i], function () {
-                collectSound.play({ loop: false });
-                score++;
-                scoreText.text = score;
-                moneyReDraw(i);
-            }, null, this);
-        } */
     }
 
 
@@ -520,22 +625,46 @@ class gameScene extends Phaser.Scene {
 
 
     update() {
+        //Fuel control
+        if (this.isHardModeEnable == 'true') {
+            //Rotate barrel
+            for (let i = 0; i < COINS_NUMBER; i++) {
+                coins[i].angle += ANGLE_CHANGING_SPEED / 2;
+                if (coins[i].angle == 360) {
+                    coins[i].angle = 0;
+                }
+            }
+
+            //Fuel consumption
+            this.fuel -= FUEL_CONSUMPTION_SPEED;
+            this.fuelIndicator.clear();
+            this.fuelIndicator.fillStyle(0xb36b00);
+            this.fuelIndicator.fillRect(100, 30, 300 * this.fuel / 100, 30);
+
+            //End game if fuel is over
+            if (this.fuel <= 0) {
+                this.endGameFunction();
+            }
+        }
+
+
         //Make parallax infinie background
         bg_0.tilePositionX = myCam.scrollX * 0.35;
         bg_0.tilePositionY = myCam.scrollY * 0.35;
 
-        bg_1.tilePositionX = myCam.scrollX * 0.47;
-        bg_1.tilePositionY = myCam.scrollY * 0.47;
+        bg_1.tilePositionX = myCam.scrollX * 0.42;
+        bg_1.tilePositionY = myCam.scrollY * 0.42;
 
 
         /* Mets movement */
         for (let i = 0; i < MET_NUMBER; i++) {
             //Mets down movement
             if (sessionStorage.getItem('isHardModeEnable') == 'true') {
+                let a = getRandomInt(1, 3);
                 if (i % 2 == 0) {
-                    mets[i].x += 1;
+                    mets[i].x += a;
                 } else {
-                    mets[i].x -= 1;
+                    mets[i].x -= a;
                 }
             }
 
@@ -560,18 +689,21 @@ class gameScene extends Phaser.Scene {
             }
         }
 
-        /* Coins movement */
+        /* Coins processing */
         for (let i = 0; i < COINS_NUMBER; i++) {
             if (Phaser.Geom.Intersects.RectangleToRectangle(rocket.getBounds(), coins[i].getBounds()) & !endGame) {
-                collectSound.play({ loop: false });
-                score++;
+                if (this.isHardModeEnable == 'false') {
+                    //No hard mode
+                    collectSound.play({ loop: false });
+                } else {
+                    this.fuel += FUEL_BOOST;
+                    if (this.fuel > 100) {
+                        this.fuel = 100;
+                    }
+                }
+                score += 10;
                 scoreText.text = score;
                 moneyReDraw(i);
-            }
-            if (coins[i].y < rocket.y - HEIGHT / 2 - 10) {
-                coins[i].y += 5;
-            } else {
-                coins[i].y += COIN_SPEED;
             }
 
             //Redraw if coin's y wrong
@@ -609,6 +741,9 @@ class gameScene extends Phaser.Scene {
         }
 
         if (up) {
+            //Disable instuctions
+            instructionsText.setVisible(false);
+
             //Set acceleration to rocket if UP key is down
             rocket.body.acceleration.x = Math.cos(rocket.rotation - ROTATION_FIX) * rocketSet.acceleration;
             rocket.body.acceleration.y = Math.sin(rocket.rotation - ROTATION_FIX) * rocketSet.acceleration;
@@ -650,20 +785,20 @@ class gameScene extends Phaser.Scene {
 
        //Losing control check
         if (rocket.body.rotation > 90 | rocket.body.rotation < -90) {
-            rocket.body.setMaxVelocity(rocketSet.maxSpeed * 2, rocketSet.maxSpeed * 2);
             if (startTime == null) {
                 startTime = new Date().getTime();
             }
             currentTime = new Date().getTime();
             let losingTime = TIME_LIMIT - (currentTime - startTime) * MS_TO_S;  //Time before lose control
             //If almost lose control
-            if (losingTime < 10) {
+            if (losingTime < TIME_BEFORE_WARNING) {
                 if (losingTime <= 0 | losingTimeCounter == 3) {
                     if (!endGame) {
                         this.endGameFunction();
                     }
                 };
                 wasDown = true;
+                instructionsText.setVisible(false);
                 losingControlText.setVisible(true);
                 losingControlText.setText(Math.round(losingTime) + ' second to loss of control\nStart flying up');
             }
@@ -672,7 +807,6 @@ class gameScene extends Phaser.Scene {
                 wasDown = false;
                 losingTimeCounter++;
             }
-            rocket.body.setMaxVelocity(rocketSet.maxSpeed, rocketSet.maxSpeed);
             losingControlText.setVisible(false);
             startTime = null;
         }
@@ -766,26 +900,6 @@ function getRandomInt(min, max) {
 
 /** Redraw meteorit  */
 function reDraw(i) {
-    //Generate texture
-    if (Math.random() < 0.5) {
-        mets[i].setTexture('meteorite1');
-        texture1Count++;
-    } else {
-        mets[i].setTexture('meteorite2');
-        texture2Count++;
-    }
-
-    //Change texture if all mets has same textures
-    if (texture1Count === MET_NUMBER) {
-        mets[i].setTexture('meteorite2');
-        texture1Count--;
-        texture2Count++;
-    } else if (texture2Count === MET_NUMBER) {
-        mets[i].setTexture('meteorite1');
-        texture2Count--;
-        texture1Count++;
-    }
-
     //Generate position
     let ok, t = 0;
     do {
