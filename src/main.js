@@ -12,7 +12,7 @@ const MET_NUMBER = 5,
     MS_TO_S = 1 / 1000,
     TIME_LIMIT = 8,
     TIME_BEFORE_WARNING = 5,
-    COINS_NUMBER = 8,
+    COINS_NUMBER = 6,
     COIN_SPEED = 3,
     FUEL_CONSUMPTION_SPEED = 0.05,
     FUEL_BOOST = 20;
@@ -330,11 +330,12 @@ class startGameScene extends Phaser.Scene {
 
 
         this.add.text(START_X, START_Y - 290, 'Just alone rocket\nin the space', textConfig).setOrigin(0.5, 0.5);
-        this.add.text(START_X - 200, START_Y - 140, 'Directed by:\nAntipov Dmitriy', smallTextConfig).setOrigin(0.5, 0.5);
-        this.add.text(START_X - 200, START_Y - 45, 'Programmer:\nDolbilov Kirill', smallTextConfig).setOrigin(0.5, 0.5);
-        this.add.text(START_X - 200, START_Y + 80, 'Designers:\nChirkov Anatoliy\nVedin Ilya\nDaniel Volk\nAlex Finn', smallTextConfig).setOrigin(0.5, 0.5);
+        this.add.text(START_X - 200, START_Y - 165, 'Directed by:\nAntipov Dmitriy', smallTextConfig).setOrigin(0.5, 0.5);
+        this.add.text(START_X - 200, START_Y - 70, 'Programmer:\nDolbilov Kirill', smallTextConfig).setOrigin(0.5, 0.5);
+        this.add.text(START_X - 200, START_Y + 90, 'Designers:\nChirkov Anatoliy\nVedin Ilya\nDaniel Volk\nAlex Finn\nOleg Chernov', smallTextConfig).setOrigin(0.5, 0.5);
         this.add.text(START_X + 220, START_Y - 10, 'Thank you to\nall the testers:\nAlex Finn\n\nOleg Chernov\n\nRoman Chernov\n\nDanil Shanin', smallTextConfig).setOrigin(0.5, 0.5);
     }
+
 
     update() {
         rocketLogo.setAngle(logoAngle);
@@ -625,7 +626,6 @@ class gameScene extends Phaser.Scene {
 
 
     update() {
-        //Fuel control
         if (this.isHardModeEnable == 'true') {
             //Rotate barrel
             for (let i = 0; i < COINS_NUMBER; i++) {
@@ -633,17 +633,6 @@ class gameScene extends Phaser.Scene {
                 if (coins[i].angle == 360) {
                     coins[i].angle = 0;
                 }
-            }
-
-            //Fuel consumption
-            this.fuel -= FUEL_CONSUMPTION_SPEED;
-            this.fuelIndicator.clear();
-            this.fuelIndicator.fillStyle(0xb36b00);
-            this.fuelIndicator.fillRect(100, 30, 300 * this.fuel / 100, 30);
-
-            //End game if fuel is over
-            if (this.fuel <= 0) {
-                this.endGameFunction();
             }
         }
 
@@ -744,6 +733,19 @@ class gameScene extends Phaser.Scene {
             //Disable instuctions
             instructionsText.setVisible(false);
 
+            //Fuel consumption
+            if (this.isHardModeEnable == 'true') {
+                this.fuel -= FUEL_CONSUMPTION_SPEED;
+                this.fuelIndicator.clear();
+                this.fuelIndicator.fillStyle(0xb36b00);
+                this.fuelIndicator.fillRect(100, 30, 300 * this.fuel / 100, 30);
+
+                //End game if fuel is over
+                if (this.fuel <= 0) {
+                    this.endGameFunction();
+                }
+            }
+
             //Set acceleration to rocket if UP key is down
             rocket.body.acceleration.x = Math.cos(rocket.rotation - ROTATION_FIX) * rocketSet.acceleration;
             rocket.body.acceleration.y = Math.sin(rocket.rotation - ROTATION_FIX) * rocketSet.acceleration;
@@ -767,6 +769,19 @@ class gameScene extends Phaser.Scene {
                     rocketSound.play({ loop: true });
                 }
                 rocketSound.setVolume(0.5);
+
+                //Fuel consumption
+                if (this.isHardModeEnable == 'true') {
+                    this.fuel -= FUEL_CONSUMPTION_SPEED / 2;
+                    this.fuelIndicator.clear();
+                    this.fuelIndicator.fillStyle(0xb36b00);
+                    this.fuelIndicator.fillRect(100, 30, 300 * this.fuel / 100, 30);
+
+                    //End game if fuel is over
+                    if (this.fuel <= 0) {
+                        this.endGameFunction();
+                    }
+                }
 
                 if (left & !right) { rocket.setTexture('leftRotating_' + a); } //Just left rotating(up- left+ right-)
                 if (!left & right) { rocket.setTexture('rightRotating_' + a); } //Just right rotating(up- left- right+)
