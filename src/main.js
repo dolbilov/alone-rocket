@@ -14,9 +14,9 @@ const MET_NUMBER = 5,
     TIME_BEFORE_WARNING = 5,
     COINS_NUMBER = 6,
     COIN_SPEED = 3,
-    FUEL_CONSUMPTION_SPEED = 0.05,
+    FUEL_CONSUMPTION_SPEED = 0.09,
     FUEL_BOOST = 20;
-    VERSION = '2.0.0-rtm';
+    VERSION = '2.0.2-rtm';
 
 let game,
     rocket,
@@ -181,6 +181,7 @@ class bootScene extends Phaser.Scene {
         this.load.image('rightUpRotating_1', '../assets/img/rocket/rightUpRotating_1.png');
         this.load.image('rightUpRotating_2', '../assets/img/rocket/rightUpRotating_2.png');
         this.load.image('barrel', '../assets/img/barrel.png');
+        this.load.image('startplace', '../assets/img/startplace.png');
 
         //Audio load
         this.load.audio('startGameSceneMusic', [
@@ -359,6 +360,7 @@ class previewScene extends Phaser.Scene {
     planet;
     sceneNumber = 1;
     countdown;
+    startplace;
 
     create() {
         this.countdown = this.sound.add('countdown', { loop: false });
@@ -366,7 +368,7 @@ class previewScene extends Phaser.Scene {
 
         this.earth = this.add.image(START_X, START_Y, 'earth');
 
-        rocket = this.add.sprite(START_X, START_Y + 320, 'engineOff');
+        rocket = this.add.sprite(START_X - 3, START_Y + 317, 'engineOff');
         rocket.setScale(0.25);
         rocket.setDepth(1);
 
@@ -380,6 +382,8 @@ class previewScene extends Phaser.Scene {
         this.bg_1.setScrollFactor(0);
         this.bg_1.setAlpha(0.6);
         this.bg_1.setVisible(false);
+
+        this.startplace = this.add.sprite(START_X + 25, HEIGHT - 80, 'startplace').setScale(1.5);
 
         this.planet = this.add.image(START_X, HEIGHT - 150, 'ground')
         this.planet.setScrollFactor(0, 0)
@@ -426,6 +430,7 @@ class previewScene extends Phaser.Scene {
             this.bg_1.destroy();
             rocket.destroy();
             this.planet.destroy();
+            this.startplace.destroy();
             this.scene.start('gameScene');
         }
     }
