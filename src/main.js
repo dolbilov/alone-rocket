@@ -16,7 +16,7 @@ const MET_NUMBER = 5,
     COIN_SPEED = 3,
     FUEL_CONSUMPTION_SPEED = 0.09,
     FUEL_BOOST = 20;
-    VERSION = '2.0.2-rtm';
+    VERSION = '2.0.3-rtm';
 
 let game,
     rocket,
@@ -41,8 +41,10 @@ let game,
     bg_1,
     mets = [],
     coins = [],
-    localStorageName = 'jarisBestScore',
-    sessionStorageName = 'isNewGame',
+    localStorageNameForBestScore = 'jarisBestScore',
+    localStorageNameForHardBestScore = 'jarisHardBestScore',
+    localStorageNameForHardMode = 'isHardModeEnable',
+    sessionStorageNameForNewGame = 'isNewGame',
     texture1Count = 0,
     texture2Count = 0,
     currentNumber = 0,
@@ -59,7 +61,6 @@ let game,
     wasDown = false,
     collectSound,
     instructionsText;
-
 
 
 window.onload = function() {
@@ -88,11 +89,26 @@ class bootScene extends Phaser.Scene {
     }
 
     preload() {
-        if (sessionStorage.getItem(sessionStorageName) === null) {
-            sessionStorage.setItem(sessionStorageName, 'true');
+        //Local & Session storage's elements control
+        if (sessionStorage.getItem(sessionStorageNameForNewGame) === null) {
+            sessionStorage.setItem(sessionStorageNameForNewGame, 'true');
         }
-        // Make preloading scene \\
-        if (sessionStorage.getItem(sessionStorageName) == 'true') {
+
+        if (localStorage.getItem(localStorageNameForBestScore) == null) {
+            localStorage.setItem(localStorageNameForBestScore, 0);
+        }
+
+        if (localStorage.getItem(localStorageNameForHardBestScore) == null) {
+            localStorage.setItem(localStorageNameForHardBestScore, 0);
+        }
+
+        if (localStorage.getItem(localStorageNameForHardMode) == null) {
+            localStorage.setItem(localStorageNameForHardMode, 'false');
+        }
+
+
+        // Make preloading scene
+        if (sessionStorage.getItem(sessionStorageNameForNewGame) == 'true') {
             let d = 15;
             let progressBox = this.add.graphics();
             progressBox.fillStyle(0x222222, 0.8);
@@ -141,7 +157,8 @@ class bootScene extends Phaser.Scene {
             });
         }
 
-        /****   Loading assets   ****/
+
+        /*  Loading assets  */
         //Spritesheets load
         this.load.spritesheet('explosion', '../assets/img/explosion.png', {
             frameWidth: 64,
@@ -211,7 +228,7 @@ class bootScene extends Phaser.Scene {
     }
 
     create() {
-        if (sessionStorage.getItem(sessionStorageName) !== 'true') {
+        if (sessionStorage.getItem(sessionStorageNameForNewGame) !== 'true') {
             this.scene.start('gameScene');
         }
 
@@ -295,11 +312,9 @@ class startGameScene extends Phaser.Scene {
             align: 'center',
             color: '#000000'
         }).setOrigin(0.5, 0.5);
-        if (sessionStorage.getItem('isHardModeEnable') === null) {
-            sessionStorage.setItem('isHardModeEnable', 'false');
-        }
+
         let text2 = '';
-        if (sessionStorage.getItem('isHardModeEnable') == 'true') {
+        if (localStorage.getItem(localStorageNameForHardMode) == 'true') {
             text2 = 'Enable';
         } else {
             text2 = 'Disable';
@@ -309,21 +324,23 @@ class startGameScene extends Phaser.Scene {
             fontFamily: 'VGAfontUpdate11',
             align: 'center',
         }).setOrigin(0.5, 0.5);
-        if (sessionStorage.getItem('isHardModeEnable') == 'false') {
+
+        if (localStorage.getItem(localStorageNameForHardMode) == 'false') {
             hardModeText.setTint(0xff3300);
         } else {
             hardModeText.setTint(0x009900);
         }
+
         hardModeText.setInteractive();
         hardModeText.on('pointerdown', function() {
-            if (sessionStorage.getItem('isHardModeEnable') == 'false') {
+            if (localStorage.getItem(localStorageNameForHardMode) == 'false') {
                 hardModeText.text = 'Enable';
-                sessionStorage.setItem('isHardModeEnable', 'true');
+                localStorage.setItem(localStorageNameForHardMode, 'true');
                 hardModeText.clearTint();
                 hardModeText.setTint(0x009900);
             } else {
                 hardModeText.text = 'Disable';
-                sessionStorage.setItem('isHardModeEnable', 'false');
+                localStorage.setItem(localStorageNameForHardMode, 'false');
                 hardModeText.clearTint();
                 hardModeText.setTint(0xff3300);
             }
@@ -444,10 +461,11 @@ class gameScene extends Phaser.Scene {
 
     fuelIndicator;
     fuel = 100;
-    isHardModeEnable = sessionStorage.getItem('isHardModeEnable');
+    isHardModeEnable;
 
 
     create() {
+        this.isHardModeEnable = localStorage.getItem(localStorageNameForHardMode);
         //Explosion animation
         let animConfig = {
             key: 'explodeAnimation',
@@ -519,7 +537,7 @@ class gameScene extends Phaser.Scene {
         });
         instructionsText.setOrigin(0.5, 0.5);
         instructionsText.setScrollFactor(0, 0);
-        if (sessionStorage.getItem(sessionStorageName) == 'false') {
+        if (sessionStorage.getItem(sessionStorageNameForNewGame) == 'false') {
             instructionsText.setVisible(false);
         }
 
@@ -534,7 +552,7 @@ class gameScene extends Phaser.Scene {
             this.fuelIndicator.setScrollFactor(0, 0);
         }
 
-        sessionStorage.setItem(sessionStorageName, 'true');
+        sessionStorage.setItem(sessionStorageNameForNewGame, 'true');
 
 
         //Met generate function
@@ -606,7 +624,7 @@ class gameScene extends Phaser.Scene {
                 coin.setRandomPosition(0, -0.5 * HEIGHT, WIDTH, HEIGHT);
                 ok = true;
                 for (let j = 0; j < currentNumber; j++) {
-                    if (Math.abs(coin.x - coins[j].x) < 40) { ok = false; t++; }
+                    if (Math.abs(coin.x - coins[j].x) < 60) { ok = false; t++; }
                 }
                 if (t === 8) { break; }
             } while (!ok);
@@ -653,7 +671,7 @@ class gameScene extends Phaser.Scene {
         /* Mets movement */
         for (let i = 0; i < MET_NUMBER; i++) {
             //Mets down movement
-            if (sessionStorage.getItem('isHardModeEnable') == 'true') {
+            if (this.isHardModeEnable == 'true') {
                 let a = getRandomInt(1, 3);
                 if (i % 2 == 0) {
                     mets[i].x += a;
@@ -674,8 +692,6 @@ class gameScene extends Phaser.Scene {
 
             //Redraw if need
             if ((mets[i].y > rocket.y + HEIGHT / 2)) {
-                // score++;
-                // scoreText.setText(score);
                 reDraw(i);
             }
             if ((mets[i].x < rocket.x - WIDTH / 2 - 30) | (mets[i].x > rocket.x + WIDTH / 2 + 30)) {
@@ -850,19 +866,27 @@ class endGameScene extends Phaser.Scene {
         let newGameButton = this.add.sprite(START_X, START_Y + 275, 'newGameButton');
         newGameButton.setInteractive();
         newGameButton.on('pointerdown', function() {
-            sessionStorage.setItem(sessionStorageName, 'false');
+            sessionStorage.setItem(sessionStorageNameForNewGame, 'false');
             location.reload();
         }, this);
 
         this.add.text(START_X, START_Y - 250, 'Game over :(', textConfig).setOrigin(0.5, 0.5);
-        let bestScore = localStorage.getItem(localStorageName);
-        if (bestScore === null) {
-            bestScore = 0;
+
+        let bestScore;
+        if (localStorage.getItem(localStorageNameForHardMode) == 'false') {
+            bestScore = localStorage.getItem(localStorageNameForBestScore);
+        } else {
+            bestScore = localStorage.getItem(localStorageNameForHardBestScore);
         }
+
         let text;
         if (score > bestScore) {
             text = 'Congratulations!\nYou have new best score:\n' + score;
-            localStorage.setItem(localStorageName, score);
+            if (localStorage.getItem(localStorageNameForHardMode) == 'false') {
+                localStorage.setItem(localStorageNameForBestScore, score);
+            } else {
+                localStorage.setItem(localStorageNameForHardBestScore, score);
+            }
         }
         else {
             text = 'Your score is ' + score + '\nYour best score is ' + bestScore;
@@ -877,7 +901,7 @@ class endGameScene extends Phaser.Scene {
             color: '#000000'
         }).setOrigin(0.5, 0.5);
         let text2 = '';
-        if (sessionStorage.getItem('isHardModeEnable') == 'true') {
+        if (localStorage.getItem(localStorageNameForHardMode) == 'true') {
             text2 = 'Enable';
         } else {
             text2 = 'Disable';
@@ -887,21 +911,21 @@ class endGameScene extends Phaser.Scene {
             fontFamily: 'VGAfontUpdate11',
             align: 'center',
         }).setOrigin(0.5, 0.5);
-        if (sessionStorage.getItem('isHardModeEnable') == 'false') {
+        if (localStorage.getItem(localStorageNameForHardMode) == 'false') {
             hardModeText.setTint(0xff3300);
         } else {
             hardModeText.setTint(0x009900);
         }
         hardModeText.setInteractive();
         hardModeText.on('pointerdown', function() {
-            if (sessionStorage.getItem('isHardModeEnable') == 'false') {
+            if (localStorage.getItem(localStorageNameForHardMode) == 'false') {
                 hardModeText.text = 'Enable';
-                sessionStorage.setItem('isHardModeEnable', 'true');
+                localStorage.setItem(localStorageNameForHardMode, 'true');
                 hardModeText.clearTint();
                 hardModeText.setTint(0x009900);
             } else {
                 hardModeText.text = 'Disable';
-                sessionStorage.setItem('isHardModeEnable', 'false');
+                localStorage.setItem(localStorageNameForHardMode, 'false');
                 hardModeText.clearTint();
                 hardModeText.setTint(0xff3300);
             }
