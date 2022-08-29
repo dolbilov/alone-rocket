@@ -1,5 +1,5 @@
 'use strict';
-/** @type {import("../typings/phaser")} */
+/** @type {import("./typings/phaser")} */
 
 const MET_NUMBER = 5,
   WIDTH = 1280,
@@ -93,20 +93,20 @@ class bootScene extends Phaser.Scene {
       sessionStorage.setItem(sessionStorageNameForNewGame, 'true');
     }
 
-    if (localStorage.getItem(localStorageNameForBestScore) == null) {
+    if (localStorage.getItem(localStorageNameForBestScore) === null) {
       localStorage.setItem(localStorageNameForBestScore, 0);
     }
 
-    if (localStorage.getItem(localStorageNameForHardBestScore) == null) {
+    if (localStorage.getItem(localStorageNameForHardBestScore) === null) {
       localStorage.setItem(localStorageNameForHardBestScore, 0);
     }
 
-    if (localStorage.getItem(localStorageNameForHardMode) == null) {
+    if (localStorage.getItem(localStorageNameForHardMode) === null) {
       localStorage.setItem(localStorageNameForHardMode, 'false');
     }
 
     // Make preloading scene
-    if (sessionStorage.getItem(sessionStorageNameForNewGame) == 'true') {
+    if (sessionStorage.getItem(sessionStorageNameForNewGame) === 'true') {
       let d = 15;
       let progressBox = this.add.graphics();
       progressBox.fillStyle(0x222222, 0.8);
@@ -157,94 +157,88 @@ class bootScene extends Phaser.Scene {
 
     /*  Loading assets  */
     //Spritesheets load
-    this.load.spritesheet('explosion', '../assets/img/explosion.png', {
+    this.load.spritesheet('explosion', './assets/img/explosion.png', {
       frameWidth: 64,
       frameHeight: 64,
       endFrame: 23,
     });
-    this.load.spritesheet('coins', '../assets/img/coins.png', {
+    this.load.spritesheet('coins', './assets/img/coins.png', {
       frameWidth: 32,
       frameHeight: 32,
       endFrame: 4,
     });
-    this.load.spritesheet('mets', '../assets/img/mets.png', {
+    this.load.spritesheet('mets', './assets/img/mets.png', {
       frameWidth: 90,
       frameHeight: 70,
       endFrame: 5,
     });
 
     //Images load
-    this.load.image('preview', '../assets/img/preview.jpg');
-    this.load.image('earth', '../assets/img/earth.jpg');
-    this.load.image('kvantumLogo', '../assets/img/kvantumLogo.png');
-    this.load.image('githubLogo', '../assets/img/githubLogo.png');
-    this.load.image('ground', '../assets/img/ground.png');
-    this.load.image('startButton', '../assets/img/startButton.png');
-    this.load.image('background_0', '../assets/img/background_0.png');
-    this.load.image('background_1', '../assets/img/background_1.png');
-    this.load.image('newGameButton', '../assets/img/newGameButton.png');
-    this.load.image('engineOff', '../assets/img/rocket/engineOff.png');
-    this.load.image('engineOn_1', '../assets/img/rocket/engineOn_1.png');
-    this.load.image('engineOn_2', '../assets/img/rocket/engineOn_2.png');
-    this.load.image(
-      'leftRotating_1',
-      '../assets/img/rocket/leftRotating_1.png'
-    );
-    this.load.image(
-      'leftRotating_2',
-      '../assets/img/rocket/leftRotating_2.png'
-    );
+    this.load.image('preview', './assets/img/preview.jpg');
+    this.load.image('earth', './assets/img/earth.jpg');
+    this.load.image('kvantumLogo', './assets/img/kvantumLogo.png');
+    this.load.image('githubLogo', './assets/img/githubLogo.png');
+    this.load.image('ground', './assets/img/ground.png');
+    this.load.image('startButton', './assets/img/startButton.png');
+    this.load.image('background_0', './assets/img/background_0.png');
+    this.load.image('background_1', './assets/img/background_1.png');
+    this.load.image('newGameButton', './assets/img/newGameButton.png');
+    this.load.image('engineOff', './assets/img/rocket/engineOff.png');
+    this.load.image('engineOn_1', './assets/img/rocket/engineOn_1.png');
+    this.load.image('engineOn_2', './assets/img/rocket/engineOn_2.png');
+    this.load.image('leftRotating_1', './assets/img/rocket/leftRotating_1.png');
+    this.load.image('leftRotating_2', './assets/img/rocket/leftRotating_2.png');
     this.load.image(
       'leftUpRotating_1',
-      '../assets/img/rocket/leftUpRotating_1.png'
+      './assets/img/rocket/leftUpRotating_1.png'
     );
     this.load.image(
       'leftUpRotating_2',
-      '../assets/img/rocket/leftUpRotating_2.png'
+      './assets/img/rocket/leftUpRotating_2.png'
     );
     this.load.image(
       'rightRotating_1',
-      '../assets/img/rocket/rightRotating_1.png'
+      './assets/img/rocket/rightRotating_1.png'
     );
     this.load.image(
       'rightRotating_2',
-      '../assets/img/rocket/rightRotating_2.png'
+      './assets/img/rocket/rightRotating_2.png'
     );
     this.load.image(
       'rightUpRotating_1',
-      '../assets/img/rocket/rightUpRotating_1.png'
+      './assets/img/rocket/rightUpRotating_1.png'
     );
     this.load.image(
       'rightUpRotating_2',
-      '../assets/img/rocket/rightUpRotating_2.png'
+      './assets/img/rocket/rightUpRotating_2.png'
     );
-    this.load.image('barrel', '../assets/img/barrel.png');
-    this.load.image('startplace', '../assets/img/startplace.png');
+    this.load.image('barrel', './assets/img/barrel.png');
+    this.load.image('startplace', './assets/img/startplace.png');
 
     //Audio load
     this.load.audio('startGameSceneMusic', [
-      '../assets/audio/startGameSceneMusic.ogg',
-      '../assets/audio/startGameSceneMusic.mp3',
+      './assets/audio/startGameSceneMusic.ogg',
+      './assets/audio/startGameSceneMusic.mp3',
     ]);
     this.load.audio('gameSceneMusic', [
-      '../assets/audio/gameSceneMusic.ogg',
-      '../assets/audio/gameSceneMusic.mp3',
+      './assets/audio/gameSceneMusic.ogg',
+      './assets/audio/gameSceneMusic.mp3',
     ]);
     this.load.audio('boom', [
-      '../assets/audio/boom.ogg',
-      '../assets/audio/boom.mp3',
+      './assets/audio/boom.ogg',
+      './assets/audio/boom.mp3',
     ]);
     this.load.audio('rocketSound', [
-      '../assets/audio/rocketSound.ogg',
-      '../assets/audio/rocketSound.mp3',
+      './assets/audio/rocketSound.ogg',
+      './assets/audio/rocketSound.mp3',
     ]);
     this.load.audio('collectSound', [
-      '../assets/audio/collectSound.ogg',
-      '../assets/audio/collectSound.mp3',
+      './assets/audio/collectSound.ogg',
+      './assets/audio/collectSound.mp3',
     ]);
     this.load.audio('countdown', [
-      '../assets/audio/countdown.ogg',
-      '../assets/audio/countdown.mp3',
+      './assets/audio/countdown.ogg',
+      './assets/audio/countdown.mp3',
     ]);
   }
 
@@ -357,7 +351,7 @@ class startGameScene extends Phaser.Scene {
       .setOrigin(0.5, 0.5);
 
     let text2 = '';
-    if (localStorage.getItem(localStorageNameForHardMode) == 'true') {
+    if (localStorage.getItem(localStorageNameForHardMode) === 'true') {
       text2 = 'Enable';
     } else {
       text2 = 'Disable';
@@ -370,7 +364,7 @@ class startGameScene extends Phaser.Scene {
       })
       .setOrigin(0.5, 0.5);
 
-    if (localStorage.getItem(localStorageNameForHardMode) == 'false') {
+    if (localStorage.getItem(localStorageNameForHardMode) === 'false') {
       hardModeText.setTint(0xff3300);
     } else {
       hardModeText.setTint(0x009900);
@@ -378,7 +372,7 @@ class startGameScene extends Phaser.Scene {
 
     hardModeText.setInteractive();
     hardModeText.on('pointerdown', function () {
-      if (localStorage.getItem(localStorageNameForHardMode) == 'false') {
+      if (localStorage.getItem(localStorageNameForHardMode) === 'false') {
         hardModeText.text = 'Enable';
         localStorage.setItem(localStorageNameForHardMode, 'true');
         hardModeText.clearTint();
