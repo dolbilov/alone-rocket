@@ -1,0 +1,19 @@
+@import '../vendor/fonts.css';
+
+body {
+  margin: 0;
+  padding: 0;
+}
+
+span {
+  font-family: 'VGAfontUpdate11', Arial, Helvetica, sans-serif;
+}
+
+canvas {
+  display: block;
+  margin: 0;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
