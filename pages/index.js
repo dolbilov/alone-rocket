@@ -16,7 +16,7 @@ const MET_NUMBER = 5,
   COIN_SPEED = 3,
   FUEL_CONSUMPTION_SPEED = 0.09,
   FUEL_BOOST = 20;
-VERSION = '2.0.3-rtm';
+VERSION = '2.1.0-rtm';
 
 let game,
   rocket,
